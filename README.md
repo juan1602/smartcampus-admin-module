@@ -87,6 +87,46 @@ Componentes principales:
 
 ---
 
+### 🟢 12/02/2026 – Módulo de Dispositivos + Primer Gemelo Digital
+Se implementó el primer módulo funcional del sistema.
+
+#### Funcionalidades desarrolladas
+- CRUD completo de dispositivos:
+  - GET /devices
+  - GET /devices/{id}
+  - POST /devices
+  - PUT /devices/{id}
+  - DELETE /devices/{id}
+
+- Persistencia con Spring Data JPA + MySQL
+- Relación 1:1 entre Device y DigitalTwin
+- Creación automática del gemelo digital al registrar un dispositivo
+- Serialización JSON sin recursividad infinita
+- Arquitectura por capas (Controller, Service, Repository, Model)
+
+#### Comportamiento actual
+Al crear un dispositivo:
+
+POST /devices
+
+El sistema:
+1. Guarda el Device
+2. Genera automáticamente su DigitalTwin
+3. Inicializa:
+   - status: OFFLINE
+   - telemetryJson: {}
+   - lastUpdate: timestamp actual
+
+Esto garantiza que **todo dispositivo registrado posee su representación virtual desde el inicio**.
+
+#### Estado del módulo
+✅ Backend funcional  
+✅ Base de datos conectada  
+✅ API REST operativa  
+✅ Primer Digital Twin implementado  
+
+---
+
 ## ⚙️ Configuración del proyecto
 
 ### Requisitos
@@ -120,19 +160,20 @@ Ejecutar:
 mvn spring-boot:run
 
 Abrir en el navegador:
-http://localhost:8080
-
+http://localhost:8090/devices
 
 ---
 
 ## 🎯 Próximos pasos
 
-- [ ] Definir entidades Device y DigitalTwin
-- [ ] Implementar CRUD de dispositivos
-- [ ] Implementar sincronización bidireccional
-- [ ] Configurar seguridad JWT
-- [ ] Implementar WebSocket para monitoreo en tiempo real
-- [ ] Pruebas unitarias
-- [ ] Documentación técnica
+- [✅] Definir entidades Device y DigitalTwin
+- [✅] Implementar CRUD de dispositivos
+- [✅] Crear gemelo digital automático
+- [  ] Endpoint de telemetría en tiempo real
+- [  ] WebSocket para monitoreo en vivo
+- [  ] Dashboard frontend
+- [  ] Seguridad JWT
+- [  ] Pruebas unitarias
+- [  ] Documentación técnica
 
 
