@@ -11,3 +11,4 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     Optional<Device> findByCode(String code);
 
 }
+
