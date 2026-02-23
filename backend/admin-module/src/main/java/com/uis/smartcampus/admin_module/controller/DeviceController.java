@@ -1,6 +1,7 @@
 package com.uis.smartcampus.admin_module.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.service.DeviceService;
+import com.uis.smartcampus.admin_module.dto.TelemetryRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +41,16 @@ public class DeviceController {
     public Device create(@RequestBody Device device) {
         return service.save(device);
     }
+
+    @PostMapping("/{id}/telemetry")
+    public void updateTelemetry(
+        @PathVariable Long id,
+        @RequestBody Map<String,Object> payload) {
+
+    service.updateTelemetry(id, payload);
+    }
+
+
 
     @PutMapping("/{id}")
     public Device update(@PathVariable Long id, @RequestBody Device device) {
