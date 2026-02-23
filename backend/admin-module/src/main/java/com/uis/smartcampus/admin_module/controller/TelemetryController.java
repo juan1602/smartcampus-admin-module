@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +31,7 @@ public class TelemetryController {
     private final ObjectMapper mapper;
 
     @PostMapping("/{deviceId}")
-    public TelemetryResponseDTO updateTelemetry(
+    public ResponseEntity<?> updateTelemetry(
             @PathVariable Long deviceId,
             @RequestBody Map<String, Object> payload) throws Exception {
 
@@ -37,19 +39,65 @@ public class TelemetryController {
         DigitalTwin twin = twinRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new RuntimeException("DigitalTwin not found for device " + deviceId));
 
-        // Procesar solo componentes definidos para el dispositivo
+        // Validar que el dispositivo tiene componentes definidos
+        if (device.getComponents() == null || device.getComponents().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "El dispositivo no tiene componentes definidos"));
+        }
+
+        // Procesar y validar componentes
         Map<String, Object> filteredTelemetry = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
         
-        if (device.getComponents() != null && !device.getComponents().isEmpty()) {
-            for (Component component : device.getComponents()) {
-                String componentName = component.getName();
-                if (payload.containsKey(componentName)) {
-                    filteredTelemetry.put(componentName, payload.get(componentName));
+        for (Component component : device.getComponents()) {
+            String componentName = component.getName();
+            
+            if (!payload.containsKey(componentName)) {
+                errors.put(componentName, "Campo requerido no encontrado");
+                continue;
+            }
+
+            Object value = payload.get(componentName);
+            
+            // Validar tipo de dato
+            if (!isValidDataType(value, component.getDataType())) {
+                errors.put(componentName, 
+                        "Tipo de dato inválido. Esperado: " + component.getDataType());
+                continue;
+            }
+
+            // Validar rango si es numérico
+            if ("FLOAT".equals(component.getDataType()) || "INTEGER".equals(component.getDataType())) {
+                Double numValue = Double.parseDouble(value.toString());
+                
+                if (component.getMinValue() != null && numValue < component.getMinValue()) {
+                    errors.put(componentName, 
+                            "Valor por debajo del mínimo: " + component.getMinValue());
+                    continue;
+                }
+                
+                if (component.getMaxValue() != null && numValue > component.getMaxValue()) {
+                    errors.put(componentName, 
+                            "Valor por encima del máximo: " + component.getMaxValue());
+                    continue;
                 }
             }
-        } else {
-            // Si no tiene componentes definidos, aceptar todo
-            filteredTelemetry.putAll(payload);
+
+            filteredTelemetry.put(componentName, value);
+        }
+
+        // Si hay errores de validación, rechazar
+        if (!errors.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Validación fallida", "detalles", errors));
+        }
+
+        // Verificar si hay campos no permitidos
+        for (String key : payload.keySet()) {
+            if (!filteredTelemetry.containsKey(key)) {
+                // Campo no reconocido - simplemente ignorarlo pero registrar
+                System.out.println("Campo ignorado para dispositivo " + deviceId + ": " + key);
+            }
         }
 
         // Guardar telemetría procesada
@@ -63,21 +111,43 @@ public class TelemetryController {
         messagingTemplate.convertAndSend("/topic/devices", device);
 
         // Retornar respuesta estructurada
-        return TelemetryResponseDTO.builder()
+        return ResponseEntity.ok(TelemetryResponseDTO.builder()
                 .deviceId(device.getId())
                 .deviceCode(device.getCode())
                 .deviceName(device.getName())
                 .status(saved.getStatus())
                 .telemetry(filteredTelemetry)
                 .lastUpdate(saved.getLastUpdate())
-                .build();
+                .build());
+    }
+
+    /**
+     * Valida que el valor sea del tipo de dato especificado
+     */
+    private boolean isValidDataType(Object value, String dataType) {
+        if (value == null) return false;
+        
+        return switch (dataType != null ? dataType : "") {
+            case "FLOAT" -> value instanceof Number;
+            case "INTEGER" -> {
+                if (value instanceof Integer) yield true;
+                if (value instanceof Long) yield true;
+                if (value instanceof Number num) {
+                    yield num.doubleValue() % 1 == 0;
+                }
+                yield false;
+            }
+            case "BOOLEAN" -> value instanceof Boolean;
+            case "STRING" -> value instanceof String;
+            default -> true;
+        };
     }
 
     /**
      * Obtener última telemetría de un dispositivo
      */
     @GetMapping("/{deviceId}")
-    public TelemetryResponseDTO getLatestTelemetry(@PathVariable Long deviceId) throws Exception {
+    public ResponseEntity<?> getLatestTelemetry(@PathVariable Long deviceId) throws Exception {
         Device device = deviceService.findById(deviceId);
         DigitalTwin twin = twinRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new RuntimeException("DigitalTwin not found for device " + deviceId));
@@ -87,13 +157,13 @@ public class TelemetryController {
                 Map.class
         );
 
-        return TelemetryResponseDTO.builder()
+        return ResponseEntity.ok(TelemetryResponseDTO.builder()
                 .deviceId(device.getId())
                 .deviceCode(device.getCode())
                 .deviceName(device.getName())
                 .status(twin.getStatus())
                 .telemetry(telemetry)
                 .lastUpdate(twin.getLastUpdate())
-                .build();
+                .build());
     }
 }
