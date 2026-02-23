@@ -1,8 +1,6 @@
 package com.uis.smartcampus.admin_module.mqtt;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.uis.smartcampus.admin_module.model.Component;
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.model.DigitalTwin;
 import com.uis.smartcampus.admin_module.repository.DeviceRepository;
@@ -74,56 +71,26 @@ public class MqttSubscriberService {
             try {
                 JsonNode json = mapper.readTree(payload);
 
-                // 🔥 Procesar dinámicamente los componentes del dispositivo
-                if (device.getComponents() != null && !device.getComponents().isEmpty()) {
-                    Map<String, Object> processedTelemetry = new HashMap<>();
-                    
-                    for (Component component : device.getComponents()) {
-                        String componentName = component.getName();
-                        
-                        if (json.has(componentName)) {
-                            Object value = parseValue(json.get(componentName));
-                            processedTelemetry.put(componentName, value);
-                            System.out.println("[MQTT] Componente procesado: " + componentName + " = " + value);
-                        }
-                    }
-                    
-                    // Guardar telemetría procesada
-                    twin.setTelemetryJson(mapper.writeValueAsString(processedTelemetry));
-                } else {
-                    // Si no tiene componentes definidos, guardar el JSON completo
-                    twin.setTelemetryJson(payload);
-                    System.out.println("[MQTT] Dispositivo sin componentes definidos, guardando payload completo");
+                twin.setTelemetryJson(payload);
+                twin.setStatus("ONLINE"); // si tu status es String, ok
+
+                if (json.has("temperature")) {
+                    twin.setTemperature(json.get("temperature").asDouble());
+                }
+                if (json.has("batteryLevel")) {
+                    twin.setBatteryLevel(json.get("batteryLevel").asDouble());
                 }
 
-                twin.setStatus("ONLINE");
-                
-                // 4) Guardar usando tu DigitalTwinService
+                // 4) Guardar usando tu DigitalTwinService (mantienes tu flujo)
                 digitalTwinService.save(twin);
 
                 System.out.println("[MQTT] Twin actualizado OK para deviceCode=" + deviceCode);
             } catch (Exception e) {
                 System.out.println("[MQTT] Error parseando/guardando payload: " + e.getMessage());
-                e.printStackTrace();
             }
         });
 
         System.out.println("[MQTT] Conectado a " + broker + " | Suscrito a " + topic);
-    }
-
-    /**
-     * Convierte un JsonNode a su tipo apropiado (Double, Integer, String, Boolean)
-     */
-    private Object parseValue(JsonNode node) {
-        if (node.isDouble() || node.isFloat()) {
-            return node.asDouble();
-        } else if (node.isInt()) {
-            return node.asInt();
-        } else if (node.isBoolean()) {
-            return node.asBoolean();
-        } else {
-            return node.asText();
-        }
     }
 
     private String extractDeviceCode(String t) {
@@ -132,4 +99,3 @@ public class MqttSubscriberService {
         return (parts.length >= 3) ? parts[2] : "UNKNOWN";
     }
 }
-

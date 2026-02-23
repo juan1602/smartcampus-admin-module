@@ -34,5 +34,8 @@ public class DigitalTwin {
     @Column(columnDefinition = "TEXT")
     private String telemetryJson;
 
+    // Ejemplos de métricas
+    private Double temperature;
+    private Double batteryLevel;
 
 }

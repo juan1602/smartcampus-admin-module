@@ -126,33 +126,6 @@ Esto garantiza que **todo dispositivo registrado posee su representación virtua
 ✅ Primer Digital Twin implementado  
 
 ---
-### 🟢 22/02/2026 – Integración de Protocolo MQTT para Telemetría IoT
-Para la transmisión de datos desde los dispositivos IoT hacia el backend se implementó el protocolo MQTT (Message Queuing Telemetry Transport), debido a su bajo consumo de ancho de banda, arquitectura basada en publicación/suscripción y eficiencia en entornos con múltiples dispositivos. 
-
-#### Arquitectura implementada
-Dispositivo IoT (simulado)
-        ↓
-Broker MQTT (Mosquitto)
-        ↓
-Subscriber en Spring Boot
-        ↓
-Actualización DigitalTwin
-        ↓
-Persistencia en MySQL
-        ↓
-API REST para visualización
-
-#### Proceso de actualización
-El algorito realiza el siguiente paso a paso:
-  1. Recepción del mensaje MQTT
-  2. Extracción del deviceCode desde el topic
-  3. Búsqueda del Device en base de datos
-  4. Recuperación del DigitalTwin asociado
-  5. Parseo del JSON (Convertir un texto en formato JSON en un objeto que el programa pueda leer, interpretar y usar.)
-  6. Actualización de estado y métricas
-  7. Persistencia transaccional
-
----
 
 ## ⚙️ Configuración del proyecto
 
