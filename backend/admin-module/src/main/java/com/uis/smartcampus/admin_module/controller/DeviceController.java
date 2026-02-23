@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.service.DeviceService;
-import com.uis.smartcampus.admin_module.dto.TelemetryRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -45,7 +44,7 @@ public class DeviceController {
     @PostMapping("/{id}/telemetry")
     public void updateTelemetry(
         @PathVariable Long id,
-        @RequestBody Map<String,Object> payload) {
+        @RequestBody Map<String,Object> payload) throws Exception {
 
     service.updateTelemetry(id, payload);
     }

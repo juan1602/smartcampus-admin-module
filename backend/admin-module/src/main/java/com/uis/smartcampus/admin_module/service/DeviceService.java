@@ -24,6 +24,7 @@ public class DeviceService {
     private final DeviceRepository repository;
     private final DigitalTwinRepository twinRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ObjectMapper mapper = new ObjectMapper();
 
 
     public List<Device> findAll() {
@@ -58,22 +59,47 @@ public class DeviceService {
         return saved;
     }
 
+    public Device update(Long id, Device device) {
+        Device existing = findById(id);
+        
+        if (device.getName() != null) {
+            existing.setName(device.getName());
+        }
+        if (device.getType() != null) {
+            existing.setType(device.getType());
+        }
+        if (device.getStatus() != null) {
+            existing.setStatus(device.getStatus());
+        }
+        if (device.getLocation() != null) {
+            existing.setLocation(device.getLocation());
+        }
+        if (device.getComponents() != null) {
+            existing.setComponents(device.getComponents());
+        }
+        if (device.getConfigJson() != null) {
+            existing.setConfigJson(device.getConfigJson());
+        }
+        
+        existing.setUpdatedAt(LocalDateTime.now());
+        Device saved = repository.save(existing);
+        messagingTemplate.convertAndSend("/topic/devices", saved);
+        return saved;
+    }
+
     public void delete(Long id) {
         repository.deleteById(id);
     }
 
-    public void updateTelemetry(Long deviceId, Map<String,Object> payload) {
+    public void updateTelemetry(Long deviceId, Map<String,Object> payload) throws Exception {
 
-    DigitalTwin twin = twinRepository.findByDeviceId(deviceId)
-            .orElseThrow();
+        DigitalTwin twin = twinRepository.findByDeviceId(deviceId)
+                .orElseThrow();
 
-    twin.setTelemetryJson(mapper.writeValueAsString(payload));
-    twin.setLastUpdate(LocalDateTime.now());
+        twin.setTelemetryJson(mapper.writeValueAsString(payload));
+        twin.setLastUpdate(LocalDateTime.now());
 
-    twinRepository.save(twin);
+        twinRepository.save(twin);
+    }
 }
 
-
-
-
-}
