@@ -1,6 +1,7 @@
 package com.uis.smartcampus.admin_module.model;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,6 +20,9 @@ public class Device {
 
     @OneToOne(mappedBy = "device", cascade = CascadeType.ALL)
     private DigitalTwin twin;
+
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Component> components;
 
 
     // Identificación
