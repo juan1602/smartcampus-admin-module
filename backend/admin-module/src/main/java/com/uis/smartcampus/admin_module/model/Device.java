@@ -1,6 +1,7 @@
 package com.uis.smartcampus.admin_module.model;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,7 +18,7 @@ public class Device {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(mappedBy = "device", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "device", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private DigitalTwin twin;
 
 
@@ -53,5 +54,12 @@ public class Device {
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "device_components",
+        joinColumns = @JoinColumn(name = "device_id"),
+        inverseJoinColumns = @JoinColumn(name = "component_id"))
+    private Set<Component> components;
 }
 

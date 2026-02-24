@@ -1,12 +1,17 @@
 package com.uis.smartcampus.admin_module.service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.uis.smartcampus.admin_module.model.Component;
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.model.DigitalTwin;
+import com.uis.smartcampus.admin_module.repository.ComponentRepository;
 import com.uis.smartcampus.admin_module.repository.DeviceRepository;
 import com.uis.smartcampus.admin_module.repository.DigitalTwinRepository;
 
@@ -19,6 +24,8 @@ public class DeviceService {
 
     private final DeviceRepository repository;
     private final DigitalTwinRepository twinRepository;
+    @Autowired
+    private ComponentRepository componentRepository;
 
 
     public List<Device> findAll() {
@@ -54,6 +61,20 @@ public class DeviceService {
 
     public void delete(Long id) {
         repository.deleteById(id);
+    }
+
+    public Device assignComponents(Long deviceId, Set<Long> componentIds) {
+
+        Device device = repository.findById(deviceId)
+            .orElseThrow();
+
+        Set<Component> components = new HashSet<>(
+            componentRepository.findAllById(componentIds)
+        );
+
+        device.setComponents(components);
+
+        return repository.save(device);
     }
 
 }

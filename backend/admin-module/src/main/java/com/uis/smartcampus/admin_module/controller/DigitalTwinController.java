@@ -1,6 +1,7 @@
 package com.uis.smartcampus.admin_module.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -42,5 +43,13 @@ public class DigitalTwinController {
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }
+
+    @PostMapping("/{deviceId}")
+    public DigitalTwin receiveTelemetry(
+        @PathVariable Long deviceId,
+        @RequestBody Map<String, Object> payload) throws Exception {
+
+    return service.updateTelemetry(deviceId, payload);
+}
 
 }

@@ -1,6 +1,7 @@
 package com.uis.smartcampus.admin_module.controller;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,6 +45,14 @@ public class DeviceController {
     public Device update(@PathVariable Long id, @RequestBody Device device) {
         device.setId(id);
         return service.save(device);
+    }
+
+    @PostMapping("/{deviceId}/components")
+    public Device assignComponents(
+        @PathVariable Long deviceId,
+        @RequestBody Set<Long> componentIds) {
+
+        return service.assignComponents(deviceId, componentIds);
     }
 
     @DeleteMapping("/{id}")
