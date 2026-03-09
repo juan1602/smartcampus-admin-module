@@ -26,11 +26,11 @@ public class TelemetryService {
     private final TelemetryRecordRepository telemetryRecordRepository;
 
     @Transactional
-    public void processTelemetry(String deviceCode, String payload) {
+    public void processTelemetry(String deviceCode, Map<String, Object> data) {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> telemetry = mapper.readValue(payload, Map.class);
+            
 
             Device device = deviceRepository.findByCode(deviceCode)
                     .orElseThrow(() -> new RuntimeException("Device not found"));
@@ -41,20 +41,28 @@ public class TelemetryService {
             device.setUpdatedAt(LocalDateTime.now());
             deviceRepository.save(device);
 
+            // 🔥 Convertir Map a JSON
+            String json = mapper.writeValueAsString(data);
+
             //guardar historial de telemetría
             TelemetryRecord record = new TelemetryRecord();
             record.setDevice(device);
-            record.setTelemetryJson(payload);
+            record.setTelemetryJson(json);
             record.setTimestamp(LocalDateTime.now());
             telemetryRecordRepository.save(record);
 
             // actualizar digital twin
             DigitalTwin twin = device.getTwin();
-            twin.setTelemetryJson(mapper.writeValueAsString(telemetry));
+            twin.setTelemetryJson(json);
             twin.setStatus("ONLINE");
+            twin.setLastUpdate(LocalDateTime.now());
             twinRepository.save(twin);
+
+            System.out.println("Telemetry processed for device: " + deviceCode);
+
         } catch (Exception e) {
             e.printStackTrace();
+            throw new RuntimeException("Failed to  telemetry for device: " + deviceCode);
     }
 }
 }

@@ -36,9 +36,9 @@ public class TelemetryController {
         DigitalTwin twin = device.getTwin();
         
         // 🔥 1️⃣ Obtener nombres de componentes permitidos
-        Set<String> allowedComponents = device.getComponents()
+        Set<String> allowedComponents = device.getProperties()
                 .stream()
-                .map(component -> component.getName())
+                .map(property -> property.getName())
                 .collect(Collectors.toSet());
 
         // 🔥 2️⃣ Filtrar solo datos que correspondan a esos componente

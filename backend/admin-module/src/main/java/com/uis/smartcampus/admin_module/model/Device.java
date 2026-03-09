@@ -57,9 +57,9 @@ public class Device {
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
-        name = "device_components",
+        name = "device_property",
         joinColumns = @JoinColumn(name = "device_id"),
-        inverseJoinColumns = @JoinColumn(name = "component_id"))
-    private Set<Component> components;
+        inverseJoinColumns = @JoinColumn(name = "property_id"))
+    private Set<Property> properties;
 }
 

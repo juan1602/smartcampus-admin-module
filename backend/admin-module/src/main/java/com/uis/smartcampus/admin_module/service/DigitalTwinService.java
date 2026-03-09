@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.uis.smartcampus.admin_module.model.Component;
+import com.uis.smartcampus.admin_module.model.Property;
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.model.DigitalTwin;
 import com.uis.smartcampus.admin_module.repository.DigitalTwinRepository;
@@ -49,9 +49,9 @@ public class DigitalTwinService {
     Device device = deviceRepository.findById(deviceId)
             .orElseThrow(() -> new EntityNotFoundException("Device not found"));
 
-    Set<String> allowedComponents = device.getComponents()
+    Set<String> allowedComponents = device.getProperties()
             .stream()
-            .map(Component::getName)
+            .map(Property::getName)
             .collect(Collectors.toSet());
 
     Map<String, Object> filtered = payload.entrySet()

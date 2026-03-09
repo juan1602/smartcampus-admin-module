@@ -8,10 +8,10 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.uis.smartcampus.admin_module.model.Component;
+import com.uis.smartcampus.admin_module.model.Property;
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.model.DigitalTwin;
-import com.uis.smartcampus.admin_module.repository.ComponentRepository;
+import com.uis.smartcampus.admin_module.repository.PropertyRepository;
 import com.uis.smartcampus.admin_module.repository.DeviceRepository;
 import com.uis.smartcampus.admin_module.repository.DigitalTwinRepository;
 
@@ -25,7 +25,7 @@ public class DeviceService {
     private final DeviceRepository repository;
     private final DigitalTwinRepository twinRepository;
     @Autowired
-    private ComponentRepository componentRepository;
+    private PropertyRepository propertyRepository;
 
 
     public List<Device> findAll() {
@@ -63,16 +63,16 @@ public class DeviceService {
         repository.deleteById(id);
     }
 
-    public Device assignComponents(Long deviceId, Set<Long> componentIds) {
+    public Device assignComponents(Long deviceId, Set<Long> propertyIds) {
 
         Device device = repository.findById(deviceId)
             .orElseThrow();
 
-        Set<Component> components = new HashSet<>(
-            componentRepository.findAllById(componentIds)
+        Set<Property> properties = new HashSet<>(
+            propertyRepository.findAllById(propertyIds)
         );
 
-        device.setComponents(components);
+        device.setProperties(properties);
 
         return repository.save(device);
     }
