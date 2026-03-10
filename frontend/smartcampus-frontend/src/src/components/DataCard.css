@@ -1,0 +1,134 @@
+.data-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.data-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 1rem;
+}
+
+.card-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.data-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.data-list li {
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s ease;
+}
+
+.data-list li:hover {
+  background: #f9f9f9;
+}
+
+.data-list li:last-child {
+  border-bottom: none;
+}
+
+.data-list strong {
+  color: #333;
+  font-weight: 600;
+  flex: 1;
+  word-break: break-word;
+}
+
+.status {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-left: 1rem;
+}
+
+.status.online {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status.offline {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status.active {
+  background: #cfe2ff;
+  color: #084298;
+}
+
+.status.inactive {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.timestamp {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.value {
+  color: #667eea;
+  font-weight: 600;
+  margin-left: 1rem;
+}
+
+.empty {
+  text-align: center;
+  color: #999;
+  padding: 2rem;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .data-card {
+    padding: 1rem;
+  }
+
+  .card-header {
+    padding-bottom: 0.8rem;
+  }
+
+  .data-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .status,
+  .value {
+    margin-left: 0;
+    align-self: flex-start;
+  }
+}

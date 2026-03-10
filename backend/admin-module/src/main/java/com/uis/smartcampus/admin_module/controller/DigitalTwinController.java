@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/twins")
 @RequiredArgsConstructor
-@CrossOrigin
 public class DigitalTwinController {
 
     private final DigitalTwinService service;

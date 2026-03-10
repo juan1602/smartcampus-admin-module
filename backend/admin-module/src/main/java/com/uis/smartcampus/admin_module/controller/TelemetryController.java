@@ -18,13 +18,18 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/telemetry")
+@RequestMapping("/telemetry")
 @RequiredArgsConstructor
 public class TelemetryController {
 
     private final DeviceRepository deviceRepository;
     private final DigitalTwinRepository twinRepository;
     private final TelemetryRecordRepository telemetryRecordRepository;
+
+    @GetMapping
+    public List<TelemetryRecord> getAll() {
+        return telemetryRecordRepository.findAll();
+    }
 
     @PostMapping("/{code}")
     public DigitalTwin receiveTelemetry(@PathVariable String code,
