@@ -25,7 +25,7 @@ function App() {
 
     const interval = setInterval(() => {
       loadData();
-    }, 100000);
+    }, 10000); // actualizar cada 10 segundos
 
     return () => clearInterval(interval);
   }, []);
@@ -133,6 +133,7 @@ function App() {
       label: `📱 Dispositivos`,
       content: (
         <DeviceManager
+          twins={twins}
           devices={devices}
           properties={properties}
           onRefresh={loadData}

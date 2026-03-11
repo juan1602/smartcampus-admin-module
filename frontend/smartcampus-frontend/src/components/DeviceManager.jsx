@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createDevice, updateDevice, deleteDevice,assignProperties,updatePropertyValue } from "../services/deviceService";
 import "./DeviceManager.css";
 
-export default function DeviceManager({ devices, properties, onRefresh }) {
+export default function DeviceManager({ twins,devices, properties, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ 
@@ -16,7 +16,6 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
   const [message, setMessage] = useState("");
 
   const deviceTypes = ["SENSOR", "ACTUATOR", "CAMERA", "CONTROLLER"];
-  const statusOptions = ["ONLINE", "OFFLINE", "MAINTENANCE", "ERROR"];
 
   const resetForm = () => {
     setFormData({ 
@@ -303,12 +302,34 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {device.properties.map((p) => {
+                        {device.properties?.map((p) => {
+                          
                           let telemetry = {};
-                          try {
-                            telemetry = device.twin && device.twin.telemetryJson ? JSON.parse(device.twin.telemetryJson) : {};
-                          } catch (e) { telemetry = {}; }
-                          const value = telemetry[p.name] !== undefined ? telemetry[p.name] : "-";
+                          const twin = (twins || []).find(t => t.device?.id === device.id);
+
+                          if (twin?.telemetryJson) {
+                            try {
+                              telemetry = JSON.parse(twin.telemetryJson);
+                            } catch (e) {
+                            console.error("Error parsing telemetry", e);
+                            telemetry = {};
+                            }
+                          }
+
+                          // 👇 AQUÍ los logs de depuración
+  console.log("=== DEBUG DISPOSITIVO:", device.code);
+  console.log("Twin encontrado:", twin);
+  console.log("telemetryJson raw:", twin?.telemetryJson);
+  console.log("Telemetry parseado:", telemetry);
+  console.log("Propiedad buscada:", p.name);
+  console.log("Valor encontrado:", telemetry[p.name]);
+
+                          const value =
+                            telemetry[p.name] ??
+                            telemetry[p.name.toLowerCase()] ??
+                            telemetry[p.name.replace("_", "")] ??
+                            "-";
+
                           return (
                             <tr key={p.id}>
                               <td>{p.name}</td>
@@ -363,11 +384,27 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
               </thead>
               <tbody>
                 {infoDevice.properties.map((p) => {
+
                   let telemetry = {};
-                  try {
-                    telemetry = infoDevice.twin && infoDevice.twin.telemetryJson ? JSON.parse(infoDevice.twin.telemetryJson) : {};
-                  } catch (e) { telemetry = {}; }
-                  const value = telemetry[p.name] !== undefined ? telemetry[p.name] : "-";
+
+                  // Buscar el twin correspondiente a este dispositivo para obtener la telemetría
+                  const twin = (twins || []).find(t => t.device?.id === infoDevice.id);
+
+                  if (twin?.telemetryJson) {
+                    try {
+                      telemetry = JSON.parse(twin.telemetryJson);
+                    } catch (e) {
+                      console.error("Error parsing telemetry", e);
+                      telemetry = {};
+                    }
+                  }
+
+                  const value =
+                    telemetry[p.name] ??
+                    telemetry[p.name.toLowerCase()] ??
+                    telemetry[p.name.replace("_", "")] ??
+                    "-";
+
                   return (
                     <tr key={p.id}>
                       <td>{p.name}</td>

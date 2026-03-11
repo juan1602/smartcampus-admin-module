@@ -11,4 +11,5 @@ public interface TelemetryRecordRepository extends JpaRepository<TelemetryRecord
     List<TelemetryRecord> findByDeviceId(Long deviceId);
 
     List<TelemetryRecord> findByDeviceOrderByTimestampDesc(Device device);
+
 }

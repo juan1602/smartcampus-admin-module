@@ -26,11 +26,13 @@ public class TelemetryController {
     private final DigitalTwinRepository twinRepository;
     private final TelemetryRecordRepository telemetryRecordRepository;
 
+    // 🔹 obtener todos los registros
     @GetMapping
     public List<TelemetryRecord> getAll() {
         return telemetryRecordRepository.findAll();
     }
 
+    // 🔹 recibir telemetría manual (POST)
     @PostMapping("/{code}")
     public DigitalTwin receiveTelemetry(@PathVariable String code,
                                         @RequestBody Map<String, Object> telemetry) throws Exception {
@@ -72,7 +74,7 @@ public class TelemetryController {
         deviceRepository.save(device);
         return twinRepository.save(twin);
     }
-
+    // 🔹 historial por código
     @GetMapping("/history/{code}")
     public List<Map<String, Object>> getHistory(@PathVariable String code) throws Exception {
 
@@ -96,4 +98,5 @@ public class TelemetryController {
             }
         }).toList();
     }
+
 }
