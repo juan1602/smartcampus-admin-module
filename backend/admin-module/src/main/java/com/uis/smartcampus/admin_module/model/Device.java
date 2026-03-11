@@ -3,6 +3,8 @@ package com.uis.smartcampus.admin_module.model;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,6 +21,7 @@ public class Device {
     private Long id;
 
     @OneToOne(mappedBy = "device", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnore
     private DigitalTwin twin;
 
 

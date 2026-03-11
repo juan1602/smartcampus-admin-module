@@ -1,8 +1,10 @@
 package com.uis.smartcampus.admin_module.controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,5 +58,18 @@ public class DeviceController {
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         service.delete(id);
+    }
+    @PostMapping("/{id}/property-value")
+    public ResponseEntity<?> updatePropertyValue(
+        @PathVariable Long id,
+        @RequestBody Map<String, Object> body) {
+
+        service.updatePropertyValue(
+            id,
+            body.get("propertyName").toString(),
+            body.get("value")
+        );
+
+        return ResponseEntity.ok().build();
     }
 }

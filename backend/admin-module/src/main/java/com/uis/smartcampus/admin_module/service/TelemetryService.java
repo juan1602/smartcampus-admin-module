@@ -36,9 +36,31 @@ public class TelemetryService {
                     .orElseThrow(() -> new RuntimeException("Device not found"));
 
             // actualizar device
-            device.setStatus("ONLINE");
             device.setLastSeen(LocalDateTime.now());
             device.setUpdatedAt(LocalDateTime.now());
+
+            // revisar batería si existe
+            Object batteryObj = data.get("battery_level");
+
+            if (batteryObj != null) {
+
+                double battery = Double.parseDouble(batteryObj.toString());
+
+                if (battery == 0) {
+                    device.setStatus("OFFLINE");
+                } 
+                else if (battery < 5) {
+                    device.setStatus("WARNING");
+                } 
+                else {
+                    device.setStatus("ONLINE");
+                }
+            } else {
+
+                // si no hay batería asumimos que está online
+                device.setStatus("ONLINE");
+            }
+
             deviceRepository.save(device);
 
             // 🔥 Convertir Map a JSON
@@ -54,7 +76,6 @@ public class TelemetryService {
             // actualizar digital twin
             DigitalTwin twin = device.getTwin();
             twin.setTelemetryJson(json);
-            twin.setStatus("ONLINE");
             twin.setLastUpdate(LocalDateTime.now());
             twinRepository.save(twin);
 

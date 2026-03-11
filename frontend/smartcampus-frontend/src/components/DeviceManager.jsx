@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createDevice, updateDevice, deleteDevice } from "../api.js";
+import { createDevice, updateDevice, deleteDevice,assignProperties,updatePropertyValue } from "../services/deviceService";
 import "./DeviceManager.css";
 
 export default function DeviceManager({ devices, properties, onRefresh }) {
@@ -72,12 +72,25 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
       };
 
       if (editingId) {
-        await updateDevice(editingId, payload);
-        setMessage("Dispositivo actualizado");
-      } else {
-        await createDevice(payload);
-        setMessage("Dispositivo creado");
-      }
+    await updateDevice(editingId, payload);
+
+  // asignar propiedades nuevamente
+      if (formData.selectedProperties.length > 0) {
+    await assignProperties(editingId, formData.selectedProperties);
+    }
+
+    setMessage("Dispositivo actualizado");
+    } else {
+    const response = await createDevice(payload);
+
+    const newDeviceId = response.data.id;
+
+    if (formData.selectedProperties.length > 0) {
+    await assignProperties(newDeviceId, formData.selectedProperties);
+    }
+
+    setMessage("Dispositivo creado");
+    }
       resetForm();
       onRefresh();
     } catch (error) {
@@ -101,6 +114,51 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
       }
     }
   };
+
+  // Estado para mostrar información
+  const [infoDevice, setInfoDevice] = useState(null);
+  // Estado para edición de valores
+  const [editValues, setEditValues] = useState({});
+
+  // Función para manejar cambios en valores editables
+  const handleValueChange = (propertyId, value) => {
+    setEditValues(prev => ({ ...prev, [propertyId]: value }));
+  };
+
+  // Función para guardar valores editados
+  const handleSaveValues = async () => {
+
+  if (!infoDevice) return;
+
+  try {
+
+    const updates = Object.entries(editValues);
+
+    for (const [propertyId, value] of updates) {
+
+      const property = infoDevice.properties.find(p => p.id === Number(propertyId));
+
+      if (property && property.writable) {
+
+        await updatePropertyValue(infoDevice.id, property.name, value);
+
+      }
+    }
+
+    setMessage("Valores actualizados correctamente");
+
+    setInfoDevice(null);
+    setEditValues({});
+
+    onRefresh();
+
+  } catch (error) {
+
+    setMessage("Error actualizando valores");
+
+  }
+
+};
 
   return (
     <div className="device-manager">
@@ -232,10 +290,35 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
                     </span>
                   </div>
                 )}
+                {/* Tabla de propiedades y valores de telemetría */}
                 {device.properties && device.properties.length > 0 && (
                   <div className="info-row">
-                    <span className="label">Propiedades:</span>
-                    <span className="properties-count">{device.properties.length}</span>
+                    <span className="label">Valores de propiedades:</span>
+                    <table className="device-properties-table" style={{ width: "100%", marginTop: 8 }}>
+                      <thead>
+                        <tr>
+                          <th>Propiedad</th>
+                          <th>Unidad</th>
+                          <th>Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {device.properties.map((p) => {
+                          let telemetry = {};
+                          try {
+                            telemetry = device.twin && device.twin.telemetryJson ? JSON.parse(device.twin.telemetryJson) : {};
+                          } catch (e) { telemetry = {}; }
+                          const value = telemetry[p.name] !== undefined ? telemetry[p.name] : "-";
+                          return (
+                            <tr key={p.id}>
+                              <td>{p.name}</td>
+                              <td>{p.unit || '-'}</td>
+                              <td>{value}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -247,6 +330,9 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
                 <button onClick={() => handleDelete(device.id)} className="btn-delete">
                   🗑️ Eliminar
                 </button>
+                <button onClick={() => setInfoDevice(device)} className="btn-info">
+                  ℹ️ Información
+                </button>
               </div>
             </div>
           ))}
@@ -254,6 +340,69 @@ export default function DeviceManager({ devices, properties, onRefresh }) {
       ) : (
         <p className="empty-state">No hay dispositivos registrados</p>
       )}
-    </div>
+
+      {infoDevice && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.3)", zIndex: 1000 }}>
+          <div className="modal-content" style={{ background: "#fff", margin: "5% auto", padding: 24, borderRadius: 8, maxWidth: 600, boxShadow: "0 2px 8px rgba(0,0,0,0.2)" }}>
+            <h2>Información del dispositivo</h2>
+            <p><strong>Código:</strong> {infoDevice.code}</p>
+            <p><strong>Nombre:</strong> {infoDevice.name}</p>
+            <p><strong>Tipo:</strong> {infoDevice.type}</p>
+            <p><strong>Ubicación:</strong> {infoDevice.location}</p>
+            <p><strong>Status:</strong> {infoDevice.status}</p>
+            <p><strong>Última vez visto:</strong> {infoDevice.lastSeen ? new Date(infoDevice.lastSeen).toLocaleString() : '-'}</p>
+            <h3>Propiedades y valores</h3>
+            <table style={{ width: "100%", marginTop: 8 }}>
+              <thead>
+                <tr>
+                  <th>Propiedad</th>
+                  <th>Unidad</th>
+                  <th>Valor</th>
+                  <th>Editar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {infoDevice.properties.map((p) => {
+                  let telemetry = {};
+                  try {
+                    telemetry = infoDevice.twin && infoDevice.twin.telemetryJson ? JSON.parse(infoDevice.twin.telemetryJson) : {};
+                  } catch (e) { telemetry = {}; }
+                  const value = telemetry[p.name] !== undefined ? telemetry[p.name] : "-";
+                  return (
+                    <tr key={p.id}>
+                      <td>{p.name}</td>
+                      <td>{p.unit || '-'}</td>
+                      <td>
+                        {p.writable ? (
+                          <input
+                            type="text"
+                            value={editValues[p.id] !== undefined ? editValues[p.id] : value}
+                            onChange={e => handleValueChange(p.id, e.target.value)}
+                            style={{ width: 80 }}
+                          />
+                        ) : (
+                          value
+                        )}
+                      </td>
+                      <td>
+                        {p.writable ? (
+                          <span style={{ color: 'green' }}>Editable</span>
+                        ) : (
+                          <span style={{ color: 'gray' }}>No editable</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div style={{ marginTop: 16 }}>
+              <button onClick={() => setInfoDevice(null)} style={{ marginRight: 8 }}>Cerrar</button>
+              <button onClick={handleSaveValues} style={{ background: '#007bff', color: '#fff' }}>Guardar cambios</button>
+            </div>
+          </div>
+        </div>
+      )
+}</div>
   );
 }

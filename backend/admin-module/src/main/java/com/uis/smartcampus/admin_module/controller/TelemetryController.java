@@ -65,7 +65,6 @@ public class TelemetryController {
 
         twin.setTelemetryJson(json);
         twin.setLastUpdate(LocalDateTime.now());
-        twin.setStatus("ONLINE");
 
         device.setStatus("ONLINE");
         device.setLastSeen(LocalDateTime.now());

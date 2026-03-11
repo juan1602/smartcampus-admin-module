@@ -22,11 +22,9 @@ public class DigitalTwin {
     // relacion 1-1 con device
     @OneToOne
     @JoinColumn(name = "device_id",nullable=false,unique = true)
-    @JsonIgnore
     private Device device;
 
-    //Estado dinámico
-    private String status;//online,offline,error
+
 
     private LocalDateTime lastUpdate;
 

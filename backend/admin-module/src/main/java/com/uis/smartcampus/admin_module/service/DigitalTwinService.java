@@ -67,7 +67,6 @@ public class DigitalTwinService {
 
     DigitalTwin twin = device.getTwin();
     twin.setTelemetryJson(json);
-    twin.setStatus("ONLINE");
     twin.setLastUpdate(LocalDateTime.now());
 
     return repository.save(twin);

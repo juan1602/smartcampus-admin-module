@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { createProperty, updateProperty, deleteProperty } from "../api.js";
+import { createProperty, updateProperty, deleteProperty } from "../services/propertyService";
 import "./PropertyManager.css";
 
 export default function PropertyManager({ properties, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: "", unit: "", description: "" });
+  const [formData, setFormData] = useState({ name: "", unit: "", description: "", writable: false });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -20,7 +20,8 @@ export default function PropertyManager({ properties, onRefresh }) {
     setFormData({ 
       name: property.name, 
       unit: property.unit || "", 
-      description: property.description || "" 
+      description: property.description || "",
+      writable: property.writable ?? false
     });
     setEditingId(property.id);
     setShowForm(true);
@@ -114,6 +115,17 @@ export default function PropertyManager({ properties, onRefresh }) {
             />
           </div>
 
+          <div className="form-group">
+            <label>Es editable esta propiedad </label>
+            <select
+              value={formData.writable ? "yes" : "no"}
+              onChange={e => setFormData({ ...formData, writable: e.target.value === "yes" })}
+            >
+              <option value="yes">Sí</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+
           <button type="submit" disabled={loading} className="btn-submit">
             {loading ? "Guardando..." : editingId ? "Actualizar" : "Crear"}
           </button>
@@ -128,6 +140,7 @@ export default function PropertyManager({ properties, onRefresh }) {
                 <h4>{prop.name}</h4>
                 {prop.unit && <p className="unit">Unidad: {prop.unit}</p>}
                 {prop.description && <p className="description">{prop.description}</p>}
+                <p className="writable">Editable: {prop.writable ? "Sí" : "No"}</p>
               </div>
               <div className="property-actions">
                 <button onClick={() => handleEdit(prop)} className="btn-edit">

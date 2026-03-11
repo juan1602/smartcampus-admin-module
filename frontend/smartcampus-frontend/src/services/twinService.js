@@ -1,4 +1,4 @@
-import api from "../api.js";
+import api from "../api/api.js";
 
 export const getTwins = () => api.get("/twins");
 export const getTwinById = (id) => api.get(`/twins/${id}`);

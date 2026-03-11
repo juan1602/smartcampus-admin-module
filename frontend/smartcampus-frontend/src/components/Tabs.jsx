@@ -1,9 +1,7 @@
 import { useState } from "react";
 import "./Tabs.css";
 
-export default function Tabs({ tabs, defaultTab = 0 }) {
-  const [activeTab, setActiveTab] = useState(defaultTab);
-
+export default function Tabs({ tabs, activeTab,setActiveTab }) {
   return (
     <div className="tabs-container">
       <div className="tabs-header">

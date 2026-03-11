@@ -17,9 +17,11 @@ public class Property {
 
     private String description;
 
+    private boolean writable;
+
     @ManyToMany(mappedBy = "properties")
     @JsonIgnore
-    private Set<Device> properties;
+    private Set<Device> devices;
 
     // getters y setters
     public Long getId() {
@@ -50,6 +52,12 @@ public class Property {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+    public boolean isWritable() {
+        return writable;
+    }
+    public void setWritable(boolean writable) {
+        this.writable = writable;
     }
 
 }

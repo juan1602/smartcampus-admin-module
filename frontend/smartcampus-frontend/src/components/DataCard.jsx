@@ -1,0 +1,142 @@
+import "./DataCard.css";
+import { useState } from "react";
+import { createPortal } from "react-dom";
+
+export default function DataCard({ title, count, data, type }) {
+
+  const [twinInfo, setTwinInfo] = useState(null);
+
+  return (
+    <div className="data-card">
+
+      <div className="card-header">
+        <h3>{title}</h3>
+        <span className="badge">{count}</span>
+      </div>
+
+      {data && data.length > 0 ? (
+
+        <ul className="data-list">
+
+          {data.map((item, index) => (
+
+            <li key={item.id || index}>
+
+              {/* DEVICES */}
+
+              {type === "device" && (
+                <>
+                  <strong>{item.code}</strong>
+
+                  <span className={`status ${item.status?.toLowerCase()}`}>
+                    {item.status}
+                  </span>
+                </>
+              )}
+
+              {/* DIGITAL TWINS */}
+
+              {type === "twin" && (
+                <>
+                  <strong>{item.name || `Twin ${item.id}`}</strong>
+
+                  <button
+                    className="info-button"
+                    onClick={() => setTwinInfo(item)}
+                  >
+                    ℹ️ Información
+                  </button>
+                </>
+              )}
+
+              {/* TELEMETRY */}
+
+              {type === "telemetry" && (
+                <>
+                  <span className="timestamp">
+                    {item.timestamp
+                      ? new Date(item.timestamp).toLocaleString()
+                      : "Sin fecha"}
+                  </span>
+
+                  <span className="value">
+                    {item.device?.code || "Dispositivo desconocido"}
+                  </span>
+                </>
+              )}
+
+            </li>
+
+          ))}
+
+        </ul>
+
+      ) : (
+
+        <p className="empty">No hay datos disponibles</p>
+
+      )}
+
+      {/* MODAL TWIN */}
+
+      {twinInfo && (
+
+        createPortal(
+
+        <div
+          className="modal-overlay"
+          onClick={() => setTwinInfo(null)}
+        >
+
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <h2>Información del Twin</h2>
+
+            <p>
+              <strong>ID:</strong> {twinInfo.id}
+            </p>
+
+            <p>
+              <strong>Nombre:</strong> {twinInfo.name || `Twin ${twinInfo.id}`}
+            </p>
+
+            <p>
+              <strong>Gemelo de:</strong>{" "}
+              {twinInfo.device?.name ||
+               twinInfo.device?.code ||
+               "Desconocido"}
+            </p>
+
+            <p>
+              <strong>Última actualización:</strong>{" "}
+              {twinInfo.lastUpdate
+                ? new Date(twinInfo.lastUpdate).toLocaleString()
+                : "-"}
+            </p>
+
+            <p><strong>Telemetría:</strong></p>
+
+            <pre className="telemetry-box">
+              {twinInfo.telemetryJson || "Sin datos"}
+            </pre>
+
+            <button
+              className="close-button"
+              onClick={() => setTwinInfo(null)}
+            >
+              Cerrar
+            </button>
+
+          </div>
+
+        </div>,
+
+        document.body
+      ))}
+
+    </div>
+  );
+}
