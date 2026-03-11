@@ -171,3 +171,42 @@
     align-self: flex-start;
   }
 }
+
+.twin-info{
+  margin-bottom:15px;
+}
+
+.telemetry-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:12px;
+  margin-top:10px;
+}
+
+.sensor-card{
+  background:#f7f8ff;
+  border-radius:10px;
+  padding:12px;
+  text-align:center;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  transition:transform 0.2s ease;
+}
+
+.sensor-card:hover{
+  transform:scale(1.05);
+}
+
+.sensor-name{
+  display:block;
+  font-size:12px;
+  color:#666;
+  text-transform:capitalize;
+}
+
+.sensor-value{
+  display:block;
+  font-size:20px;
+  font-weight:bold;
+  color:#667eea;
+  margin-top:4px;
+}

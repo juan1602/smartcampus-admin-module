@@ -5,7 +5,15 @@ import { createPortal } from "react-dom";
 export default function DataCard({ title, count, data, type }) {
 
   const [twinInfo, setTwinInfo] = useState(null);
+  let telemetryData = {};
 
+  if (twinInfo?.telemetryJson) {
+    try {
+      telemetryData = JSON.parse(twinInfo.telemetryJson);
+    } catch {
+      telemetryData = {};
+    }
+  }
   return (
     <div className="data-card">
 
@@ -119,10 +127,17 @@ export default function DataCard({ title, count, data, type }) {
 
             <p><strong>Telemetría:</strong></p>
 
-            <pre className="telemetry-box">
-              {twinInfo.telemetryJson || "Sin datos"}
-            </pre>
-
+            <div className="telemetry-grid">
+              {Object.keys(telemetryData).length === 0 &&(
+                <p>No hay datos de telemetría disponibles</p>
+              )}
+              {Object.entries(telemetryData).map(([key, value]) => (
+                <div key={key} className="sensor-card">
+                  <span className="sensor-name">{key.replace("_", " ")}</span>
+                  <span className="sensor-value">{value}</span>
+                </div>
+              ))}
+            </div>
             <button
               className="close-button"
               onClick={() => setTwinInfo(null)}
