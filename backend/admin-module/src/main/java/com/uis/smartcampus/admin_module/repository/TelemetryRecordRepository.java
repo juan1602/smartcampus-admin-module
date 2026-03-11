@@ -12,4 +12,7 @@ public interface TelemetryRecordRepository extends JpaRepository<TelemetryRecord
 
     List<TelemetryRecord> findByDeviceOrderByTimestampDesc(Device device);
 
+    // 🆕 NUEVO - para consultar historial directamente por id del dispositivo
+    List<TelemetryRecord> findByDeviceIdOrderByTimestampDesc(@org.springframework.lang.NonNull Long deviceId);
+
 }

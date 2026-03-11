@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import "./Tabs.css";
 
 export default function Tabs({ tabs, activeTab,setActiveTab }) {

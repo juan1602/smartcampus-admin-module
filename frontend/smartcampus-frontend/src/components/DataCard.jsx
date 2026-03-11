@@ -2,7 +2,7 @@ import "./DataCard.css";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-export default function DataCard({ title, count, data, type }) {
+export default function DataCard({ title, count, data, type, onOpen }) {
 
   const [twinInfo, setTwinInfo] = useState(null);
   let telemetryData = {};
@@ -83,6 +83,12 @@ export default function DataCard({ title, count, data, type }) {
 
         <p className="empty">No hay datos disponibles</p>
 
+      )}
+      {/* Boton ver historial completo - solo para telemetría */}
+      {type === "telemetry" && (
+        <button className="btn-ver-historial" onClick={onOpen}>
+          📋Ver historial completo
+        </button>
       )}
 
       {/* MODAL TWIN */}

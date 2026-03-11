@@ -210,3 +210,19 @@
   color:#667eea;
   margin-top:4px;
 }
+
+.btn-ver-historial {
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px;
+  background: #6c63ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+.btn-ver-historial:hover {
+  background: #5a52d5;
+}

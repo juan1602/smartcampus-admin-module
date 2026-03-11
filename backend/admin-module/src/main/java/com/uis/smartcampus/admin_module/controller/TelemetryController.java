@@ -32,6 +32,15 @@ public class TelemetryController {
         return telemetryRecordRepository.findAll();
     }
 
+    // 🆕 NUEVO ENDPOINT PARA FRONTEND (por deviceId)
+    @GetMapping("/device/{deviceId}")
+    public List<TelemetryRecord> getTelemetryByDevice(@PathVariable Long deviceId) {
+
+        return telemetryRecordRepository
+                .findByDeviceIdOrderByTimestampDesc(deviceId);
+
+    }
+
     // 🔹 recibir telemetría manual (POST)
     @PostMapping("/{code}")
     public DigitalTwin receiveTelemetry(@PathVariable String code,

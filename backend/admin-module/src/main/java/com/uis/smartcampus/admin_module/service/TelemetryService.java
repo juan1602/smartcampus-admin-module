@@ -127,4 +127,10 @@ public class TelemetryService {
     }
 }
 
+    // 🆕 NUEVO MÉTODO
+    public List<TelemetryRecord> getTelemetryHistory(Long deviceId) {
+
+    return telemetryRecordRepository.findByDeviceIdOrderByTimestampDesc(deviceId);
+
+    }
 }
