@@ -17,8 +17,6 @@ public class MqttTelemetryListener {
         
         try { 
             System.out.println("🔥 MENSAJE RECIBIDO 🔥"); 
-            System.out.println("Topic: " + message.getHeaders().get("mqtt_receivedTopic")); 
-            System.out.println("Payload RAW: " + message.getPayload()); 
 
             String topic = message.getHeaders().get("mqtt_receivedTopic").toString(); 
             String payload = message.getPayload(); 
@@ -26,10 +24,21 @@ public class MqttTelemetryListener {
             System.out.println("Topic: " + topic); 
             System.out.println("Payload RAW: " + payload); 
             
+            String jsonPayload;
+            // convertir formato {key=value} a JSON
+            if(payload.trim().startsWith("{") && payload.contains("=")) {
+                jsonPayload = payload.replaceAll("\\{([^}]+)\\}", "{$1}")
+                .replaceAll("([a-zA-Z_][a-zA-Z0-9_]*)=([^,}]+)", "\"$1\": $2");
+            } else {
+                jsonPayload = payload; 
+            }
+            
+            System.out.println("Payload JSON: " + jsonPayload);
+            
             String deviceCode = topic.split("/")[1]; 
             
             ObjectMapper mapper = new ObjectMapper(); 
-            Map<String, Object> telemetryData = mapper.readValue(payload, Map.class); 
+            Map<String, Object> telemetryData = mapper.readValue(jsonPayload, Map.class); 
             
             telemetryService.processTelemetry(deviceCode, telemetryData); 
                
