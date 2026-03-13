@@ -76,8 +76,29 @@ public class TelemetryService {
             return;
 
         }
+        Object batteryObject = filteredData.get("baterry_level");
+        if (batteryObject != null) {
 
-        ObjectMapper mapper = new ObjectMapper();
+            double batteryLevel = Double.parseDouble(batteryObject.toString());
+
+            if (batteryLevel == 0) {
+
+                device.setStatus("OFFLINE");
+            }
+            else if(batteryLevel<5){
+                device.setStatus("WARNING");
+                System.out.println("⚠️ WARNING: Battery level critically low for device " + deviceCode);
+            }
+            else if (batteryLevel < 20) {
+                device.setStatus("LOW_BATTERY");
+            } else {
+
+                device.setStatus("ONLINE");
+            } 
+        } else{
+                // si no se reporta nivel de batería, asumir que el dispositivo está online
+                device.setStatus("ONLINE");
+            }
 
         // 🔹 guardar historial
         String json = mapper.writeValueAsString(filteredData);

@@ -8,6 +8,7 @@ import DeviceManager from "./components/DeviceManager";
 import PropertyManager from "./components/PropertyManager";
 import Tabs from "./components/Tabs";
 import "./App.css";
+import TelemetryCharts from "./components/TelemetryCharts";
 
 function App() {
 
@@ -178,6 +179,12 @@ function App() {
           properties={properties}
           onRefresh={loadData}
         />
+      )
+    },
+    {
+      label: `📈 Gráficas`,
+      content: (
+        <TelemetryCharts devices={devices}/>
       )
     }
   ];

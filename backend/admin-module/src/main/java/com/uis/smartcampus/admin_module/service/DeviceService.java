@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,46 +64,79 @@ public class DeviceService {
     }
 
     @Transactional
-public void updatePropertyValue(Long deviceId, String propertyName, Object value) {
+    public void updatePropertyValue(Long deviceId, String propertyName, Object value) {
 
-    Device device = repository.findById(deviceId)
+    
+        Device device = repository.findById(deviceId)
             .orElseThrow(() -> new RuntimeException("Device not found"));
 
-    DigitalTwin twin = device.getTwin();
+        // normalizar nombre de propiedad
+        propertyName = propertyName.trim().toLowerCase();
 
-    ObjectMapper mapper = new ObjectMapper();
+        // obtener propiedades válidas del dispositivo
+        Set<String> validProperties = device.getProperties()
+            .stream()
+            .map(p -> p.getName().trim().toLowerCase())
+            .collect(Collectors.toSet());
+        // validar que exista la propiedad en el dispositivo
+        if (!validProperties.contains(propertyName)) {
+            throw new RuntimeException("Property not valid for this device");
+        }
 
-    Map<String, Object> telemetry;
+        DigitalTwin twin = device.getTwin();
 
-    try {
+        ObjectMapper mapper = new ObjectMapper();
 
-        telemetry = twin.getTelemetryJson() != null
+        Map<String, Object> telemetry;
+
+        try {
+
+            telemetry = twin.getTelemetryJson() != null
                 ? mapper.readValue(twin.getTelemetryJson(), Map.class)
                 : new HashMap<>();
+            Map<String, Object> normalizedTelemetry= new HashMap<>();
+            for (Map.Entry<String, Object> entry : telemetry.entrySet()) {
 
-    } catch (Exception e) {
+                String normalizedKey = entry.getKey().trim().toLowerCase();
+                normalizedTelemetry.put(normalizedKey, entry.getValue());
+
+            }
+            telemetry.clear();
+            telemetry.putAll(normalizedTelemetry);
+            // limpiar propiedades que ya no son válidas (en caso de cambios en el dispositivo)
+            telemetry.keySet().removeIf(key -> !validProperties.contains(key.toLowerCase()));
+
+            // verificar si el valor realmente cambio
+            Object currentValue = telemetry.get(propertyName);
+            if (currentValue != null && currentValue.equals(value)) {
+                System.out.println("Valor de propiedad '" + propertyName + "' no ha cambiado, no se actualiza");
+                return;
+            }
+            
+
+        } catch (Exception e) {
 
         telemetry = new HashMap<>();
 
+        }
+
+        telemetry.put(propertyName, value);
+
+        try {
+
+            twin.setTelemetryJson(mapper.writeValueAsString(telemetry));
+
+        } catch (Exception e) {
+
+            throw new RuntimeException("Error updating telemetry");
+
+        }
+
+        twin.setLastUpdate(LocalDateTime.now());
+
+        twinRepository.save(twin);
+
     }
-
-    telemetry.put(propertyName, value);
-
-    try {
-
-        twin.setTelemetryJson(mapper.writeValueAsString(telemetry));
-
-    } catch (Exception e) {
-
-        throw new RuntimeException("Error updating telemetry");
-
-    }
-
-    twin.setLastUpdate(LocalDateTime.now());
-
-    twinRepository.save(twin);
-
-}
 
     public void delete(Long id) {
         repository.deleteById(id);
