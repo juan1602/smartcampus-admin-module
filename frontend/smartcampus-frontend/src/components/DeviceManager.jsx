@@ -3,7 +3,7 @@ import { createDevice, updateDevice, deleteDevice, assignProperties, updatePrope
 import "./DeviceManager.css";
 import yaml from "js-yaml";
 
-export default function DeviceManager({ twins, devices, properties, onRefresh }) {
+export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen }) {
 
   // ── Estados del formulario ──────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -17,11 +17,18 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  
+  // Notifica al padre cuando se abre/cierra el formulario para pausar polling
+  useEffect(() => {
+    if (onFormOpen) {
+      onFormOpen(showForm);
+    }
+  }, [showForm, onFormOpen]);
   useEffect(() => {
   if (message) {
     const timer = setTimeout(() => {
       setMessage("");
-    }, 3000);
+    }, 7000);
 
     return () => clearTimeout(timer);
   }
@@ -51,6 +58,27 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
     const keys = Object.keys(telemetry);
     const match = keys.find(k => k.toLowerCase() === propertyName.toLowerCase());
     return match !== undefined ? telemetry[match] : "-";
+  };
+
+  const resolvePropertyIdsFromNames = (propertyNames = []) => {
+    const availableProperties = properties || [];
+
+    const matchedIds = [];
+    const missing = [];
+
+    propertyNames.forEach((propName) => {
+      const found = availableProperties.find(
+        (p) => p.name?.toLowerCase() === String(propName).toLowerCase()
+      );
+
+      if (found) {
+        matchedIds.push(found.id);
+      } else {
+        missing.push(propName);
+      }
+    });
+
+    return { matchedIds, missing };
   };
 
   // ── Formulario ──────────────────────────────────────────────────────────────
@@ -136,7 +164,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
     }
   };
 
-  const handleYamlUpload = async (e) => {
+    const handleYamlUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -146,58 +174,65 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
     try {
       const text = await file.text();
       const data = yaml.load(text);
+
       if (!data || typeof data !== "object") {
         throw new Error("El archivo YAML está vacío o tiene un formato inválido");
       }
 
-      // Caso 1: un solo dispositivo
-      if (!data.devices) {
+      // Función interna para validar y crear un dispositivo
+      const createDeviceFromYaml = async (deviceData) => {
         const payload = {
-          code: data.code || "",
-          name: data.name || "",
-          type: data.type || "SENSOR",
-          location: data.location || "",
+          code: deviceData.code || "",
+          name: deviceData.name || "",
+          type: deviceData.type || "SENSOR",
+          location: deviceData.location || "",
           status: "OFFLINE"
         };
 
         if (!payload.code.trim()) {
-          throw new Error("El archivo YAML debe incluir al menos el campo 'code'");
+          throw new Error("Cada dispositivo del YAML debe incluir al menos el campo 'code'");
         }
 
+        // Validar propiedades antes de crear el dispositivo
+        let propertyIds = [];
+        if (Array.isArray(deviceData.selectedProperties) && deviceData.selectedProperties.length > 0) {
+          const { matchedIds, missing } = resolvePropertyIdsFromNames(deviceData.selectedProperties);
+
+          if (missing.length > 0) {
+            throw new Error(
+              `El dispositivo ${payload.code} contiene propiedades no registradas: ${missing.join(", ")}. Debes registrarlas primero en el módulo de propiedades.`
+            );
+          }
+
+          propertyIds = matchedIds;
+        }
+
+        // Crear el dispositivo solo si todo está validado
         const response = await createDevice(payload);
         const newDeviceId = response.data.id;
 
-        if (Array.isArray(data.selectedProperties) && data.selectedProperties.length > 0) {
-          await assignProperties(newDeviceId, data.selectedProperties);
+        if (propertyIds.length > 0) {
+          await assignProperties(newDeviceId, propertyIds);
         }
+      };
 
+      // Caso 1: un solo dispositivo
+      if (!data.devices) {
+        await createDeviceFromYaml(data);
         setMessage("Dispositivo creado desde YAML");
       }
 
       // Caso 2: varios dispositivos
       else if (Array.isArray(data.devices)) {
-        for (const device of data.devices) {
-          const payload = {
-            code: device.code || "",
-            name: device.name || "",
-            type: device.type || "SENSOR",
-            location: device.location || "",
-            status: "OFFLINE"
-          };
-
-          if (!payload.code.trim()) {
-            continue;
-          }
-
-          const response = await createDevice(payload);
-          const newDeviceId = response.data.id;
-
-          if (Array.isArray(device.selectedProperties) && device.selectedProperties.length > 0) {
-            await assignProperties(newDeviceId, device.selectedProperties);
-          }
+        if (data.devices.length < 1) {
+          throw new Error("El arreglo 'devices' está vacío");
         }
 
-        setMessage("Dispositivos creados desde YAML");
+        for (const device of data.devices) {
+          await createDeviceFromYaml(device);
+        }
+
+        setMessage(`Se crearon ${data.devices.length} dispositivos desde YAML`);
       } else {
         throw new Error("Formato YAML no válido");
       }
@@ -221,7 +256,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
     if (!infoDevice) return;
     try {
       for (const [propertyId, value] of Object.entries(editValues)) {
-        const property = infoDevice.properties.find(p => p.id === Number(propertyId));
+        const property = (infoDevice.properties || []).find(p => p.id === Number(propertyId));
         if (property && property.writable) {
           await updatePropertyValue(infoDevice.id, property.name, value);
         }
@@ -243,7 +278,10 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
       {/* Encabezado */}
       <div className="device-header">
         <h2>Gestionar Dispositivos ({devices.length})</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+        <button onClick={() => {
+          setShowForm(!showForm);
+          if (showForm) setInfoDevice(null); // Cierra el modal si está abierto
+        }} className="btn-primary">
           {showForm ? "✕ Cancelar" : "+ Nuevo Dispositivo"}
         </button>
       </div>
@@ -488,7 +526,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
                 </tr>
               </thead>
               <tbody>
-                {infoDevice.properties.map((p) => {
+                {(infoDevice.properties || []).map((p) => {
                   const telemetry = getTelemetryForDevice(infoDevice.id);
                   const value = getPropertyValue(telemetry, p.name);
                   return (

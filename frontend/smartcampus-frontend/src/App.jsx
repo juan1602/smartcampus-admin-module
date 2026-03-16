@@ -31,12 +31,18 @@ function App() {
   // searchText es el texto del buscador dentro del modal
   const [searchText, setSearchText] = useState("");
 
-  // ── Carga inicial y polling cada 10 segundos ────────────────────────────────
+  // ── Estado para pausar polling durante edición ───────────────────────────────
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // ── Carga inicial y polling cada 10 segundos (pausa si hay formulario abierto) 
   useEffect(() => {
     loadData();
-    const interval = setInterval(() => loadData(), 10000);
-    return () => clearInterval(interval);
-  }, []);
+    // Solo inicia el polling si el formulario está cerrado
+    if (!isFormOpen) {
+      const interval = setInterval(() => loadData(), 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isFormOpen]);
 
   // Carga todos los datos del dashboard en paralelo
   const loadData = async () => {
@@ -169,6 +175,7 @@ function App() {
           devices={devices}
           properties={properties}
           onRefresh={loadData}
+          onFormOpen={setIsFormOpen}
         />
       )
     },
