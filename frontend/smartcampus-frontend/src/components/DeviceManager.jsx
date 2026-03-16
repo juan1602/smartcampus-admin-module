@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createDevice, updateDevice, deleteDevice, assignProperties, updatePropertyValue } from "../services/deviceService";
 import "./DeviceManager.css";
+import yaml from "js-yaml";
 
 export default function DeviceManager({ twins, devices, properties, onRefresh }) {
 
@@ -16,6 +17,15 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  useEffect(() => {
+  if (message) {
+    const timer = setTimeout(() => {
+      setMessage("");
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }
+}, [message]);
 
   // ── Estados del modal de información ───────────────────────────────────────
   const [infoDevice, setInfoDevice] = useState(null);
@@ -123,6 +133,81 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleYamlUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const text = await file.text();
+      const data = yaml.load(text);
+      if (!data || typeof data !== "object") {
+        throw new Error("El archivo YAML está vacío o tiene un formato inválido");
+      }
+
+      // Caso 1: un solo dispositivo
+      if (!data.devices) {
+        const payload = {
+          code: data.code || "",
+          name: data.name || "",
+          type: data.type || "SENSOR",
+          location: data.location || "",
+          status: "OFFLINE"
+        };
+
+        if (!payload.code.trim()) {
+          throw new Error("El archivo YAML debe incluir al menos el campo 'code'");
+        }
+
+        const response = await createDevice(payload);
+        const newDeviceId = response.data.id;
+
+        if (Array.isArray(data.selectedProperties) && data.selectedProperties.length > 0) {
+          await assignProperties(newDeviceId, data.selectedProperties);
+        }
+
+        setMessage("Dispositivo creado desde YAML");
+      }
+
+      // Caso 2: varios dispositivos
+      else if (Array.isArray(data.devices)) {
+        for (const device of data.devices) {
+          const payload = {
+            code: device.code || "",
+            name: device.name || "",
+            type: device.type || "SENSOR",
+            location: device.location || "",
+            status: "OFFLINE"
+          };
+
+          if (!payload.code.trim()) {
+            continue;
+          }
+
+          const response = await createDevice(payload);
+          const newDeviceId = response.data.id;
+
+          if (Array.isArray(device.selectedProperties) && device.selectedProperties.length > 0) {
+            await assignProperties(newDeviceId, device.selectedProperties);
+          }
+        }
+
+        setMessage("Dispositivos creados desde YAML");
+      } else {
+        throw new Error("Formato YAML no válido");
+      }
+
+      onRefresh();
+    } catch (error) {
+      setMessage("Error: " + (error.message || "No se pudo cargar el YAML"));
+    } finally {
+      setLoading(false);
+      e.target.value = "";
     }
   };
 
@@ -243,6 +328,32 @@ export default function DeviceManager({ twins, devices, properties, onRefresh })
           <button type="submit" disabled={loading} className="btn-submit">
             {loading ? "Guardando..." : editingId ? "Actualizar Dispositivo" : "Crear Dispositivo"}
           </button>
+          {!editingId && (
+            <div className="form-section">
+              <h3>Cargar desde archivo YAML</h3>
+              <div className="form-actions">
+            
+              {!editingId && (
+                <label className="btn-submit file-upload-btn">
+                  {loading ? "Cargando..." : "Subir archivo YAML"}
+                  <input
+                    type="file"
+                    accept=".yaml,.yml"
+                    onChange={handleYamlUpload}
+                    disabled={loading}
+                    hidden
+                  />
+                </label>
+              )}
+
+                <small>
+                  Puedes cargar un solo dispositivo o varios dispositivos desde un archivo YAML.
+                </small>
+
+                
+              </div>
+            </div>
+          )}
         </form>
       )}
 
