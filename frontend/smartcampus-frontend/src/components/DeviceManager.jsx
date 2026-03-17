@@ -278,7 +278,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       {/* Encabezado */}
       <div className="device-header">
         <h2>Gestionar Dispositivos ({devices.length})</h2>
-        <button onClick={() => {
+        <button type="button" onClick={() => {
           setShowForm(!showForm);
           if (showForm) setInfoDevice(null); // Cierra el modal si está abierto
         }} className="btn-primary">

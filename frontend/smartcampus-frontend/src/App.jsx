@@ -36,13 +36,14 @@ function App() {
 
   // ── Carga inicial y polling cada 10 segundos (pausa si hay formulario abierto) 
   useEffect(() => {
-    loadData();
-    // Solo inicia el polling si el formulario está cerrado
-    if (!isFormOpen) {
-      const interval = setInterval(() => loadData(), 10000);
-      return () => clearInterval(interval);
-    }
-  }, [isFormOpen]);
+  loadData();
+}, []);
+
+useEffect(() => {
+  if (isFormOpen) return;
+  const interval = setInterval(() => loadData(), 10000);
+  return () => clearInterval(interval);
+}, [isFormOpen]);
 
   // Carga todos los datos del dashboard en paralelo
   const loadData = async () => {
