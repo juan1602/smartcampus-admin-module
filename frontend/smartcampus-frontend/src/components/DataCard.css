@@ -1,9 +1,8 @@
 .data-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1.2rem;
+  border: 1px solid var(--border-color);
 }
 
 .info-button{
@@ -13,30 +12,31 @@
   cursor:pointer;
 }
 
-.modal-overlay{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100vw;
-  height:100vh;
-  background:rgba(0,0,0,0.3);
-  z-index:1000;
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
 }
 
-.modal-content{
-  background:white;
-  margin:5% auto;
-  padding:24px;
-  border-radius:10px;
-  max-width:600px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+.modal-content {
+  background: var(--bg-card);
+  margin: 5% auto;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 600px;
+  border: 1px solid var(--border-color);
 }
 
-.telemetry-box{
-  background:#f6f6f6;
-  padding:10px;
-  border-radius:6px;
-  font-size:13px;
+.telemetry-box {
+  background: var(--bg-hover);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .close-button{
@@ -46,32 +46,31 @@
 }
 
 .data-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  background: var(--bg-hover);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 1rem;
+  margin-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.8rem;
 }
 
 .card-header h3 {
   margin: 0;
-  color: #333;
-  font-size: 1.3rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
 }
 
 .badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  padding: 0.3rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .data-list {
@@ -81,16 +80,15 @@
 }
 
 .data-list li {
-  padding: 1rem;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 0.9rem;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background 0.2s ease;
 }
 
 .data-list li:hover {
-  background: #f9f9f9;
+  background: var(--bg-hover);
 }
 
 .data-list li:last-child {
@@ -98,7 +96,7 @@
 }
 
 .data-list strong {
-  color: #333;
+  color: var(--text-primary);
   font-weight: 600;
   flex: 1;
   word-break: break-word;
@@ -113,41 +111,40 @@
 }
 
 .status.online {
-  background: #d4edda;
-  color: #155724;
+  background: transparent;
+  color: var(--color-primary);
 }
 
 .status.offline {
-  background: #f8d7da;
-  color: #721c24;
+  background: transparent;
+  color: var(--text-secondary);
 }
 
 .status.active {
-  background: #cfe2ff;
-  color: #084298;
+  background: transparent;
+  color: var(--text-primary);
 }
 
 .status.inactive {
-  background: #e2e3e5;
-  color: #383d41;
+  background: transparent;
+  color: var(--text-secondary);
 }
 
 .timestamp {
-  color: #666;
-  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
 }
 
 .value {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 600;
   margin-left: 1rem;
 }
 
 .empty {
   text-align: center;
-  color: #999;
-  padding: 2rem;
-  font-style: italic;
+  color: var(--text-secondary);
+  padding: 1.5rem;
 }
 
 @media (max-width: 768px) {
@@ -183,46 +180,46 @@
   margin-top:10px;
 }
 
-.sensor-card{
-  background:#f7f8ff;
-  border-radius:10px;
-  padding:12px;
-  text-align:center;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-  transition:transform 0.2s ease;
+.sensor-card {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  border: 1px solid var(--border-color);
 }
 
 .sensor-card:hover{
   transform:scale(1.05);
 }
 
-.sensor-name{
-  display:block;
-  font-size:12px;
-  color:#666;
-  text-transform:capitalize;
+.sensor-name {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
 }
 
-.sensor-value{
-  display:block;
-  font-size:20px;
-  font-weight:bold;
-  color:#667eea;
-  margin-top:4px;
+.sensor-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: 4px;
 }
 
 .btn-ver-historial {
   width: 100%;
-  margin-top: 12px;
-  padding: 8px;
-  background: #6c63ff;
-  color: white;
-  border: none;
-  border-radius: 8px;
+  margin-top: 10px;
+  padding: 6px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 13px;
 }
+
 .btn-ver-historial:hover {
-  background: #5a52d5;
+  background: var(--bg-hover);
 }

@@ -480,7 +480,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
 
             {/* Header del modal */}
             <div className="device-modal-header">
-              <h2>📟 {infoDevice.code}</h2>
+              <h2> {infoDevice.code}</h2>
               <button className="device-modal-close" onClick={() => setInfoDevice(null)}>✕</button>
             </div>
 

@@ -142,7 +142,7 @@ useEffect(() => {
   // ── Definición de tabs ─────────────────────────────────────────────────────
   const tabs = [
     {
-      label: `📊 Dashboard`,
+      label: `Dashboard`,
       content: (
         <div className="dashboard-grid">
           <DataCard
@@ -169,7 +169,7 @@ useEffect(() => {
       )
     },
     {
-      label: `📱 Dispositivos`,
+      label: `Dispositivos`,
       content: (
         <DeviceManager
           twins={twins}
@@ -181,7 +181,7 @@ useEffect(() => {
       )
     },
     {
-      label: `⚙️ Propiedades`,
+      label: `Propiedades`,
       content: (
         <PropertyManager
           properties={properties}
@@ -190,7 +190,7 @@ useEffect(() => {
       )
     },
     {
-      label: `📈 Gráficas`,
+      label: `Gráficas`,
       content: (
         <TelemetryCharts devices={devices}/>
       )
@@ -204,7 +204,7 @@ useEffect(() => {
       <header className="app-header">
         <div className="header-content">
           <div>
-            <h1>🏫 Smart Campus UIS</h1>
+            <h1>Smart Campus UIS</h1>
             <p>Panel de Control y Gestión</p>
           </div>
           <div className="header-actions">
@@ -253,10 +253,17 @@ useEffect(() => {
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: "#fff", borderRadius: 12,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
-                padding: 28, width: "90%", maxWidth: 860,
-                maxHeight: "88vh", display: "flex", flexDirection: "column", gap: 16,
+                background: "var(--bg-card)",
+                borderRadius: 12,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+                padding: 28,
+                width: "90%",
+                maxWidth: 860,
+                maxHeight: "88vh",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                color: "var(--text-primary)"
               }}
             >
               {/* Encabezado del modal */}
@@ -274,11 +281,20 @@ useEffect(() => {
                 {/* Select — al cambiar llama al backend con el dispositivo seleccionado */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>Filtrar por dispositivo</label>
-                  <select
-                    value={selectedDevice}
-                    onChange={(e) => handleDeviceFilter(e.target.value)}
-                    style={{ padding: "8px 12px", borderRadius: 8, border: "1.5px solid #ddd", fontSize: 14, background: "#f8f9fa", cursor: "pointer" }}
-                  >
+                 <select
+  value={selectedDevice}
+  onChange={(e) => handleDeviceFilter(e.target.value)}
+  style={{
+    padding: "8px 12px",
+    borderRadius: 8,
+    border: `1.5px solid var(--border-color)`,
+    fontSize: 14,
+    background: "var(--bg-main)",
+    color: "var(--text-primary)",
+    cursor: "pointer",
+    transition: "border-color 0.2s ease, background 0.2s ease",
+  }}
+>
                     <option value="all">Todos los dispositivos</option>
                     {devices.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -290,49 +306,67 @@ useEffect(() => {
 
                 {/* Buscador — filtra sobre los datos ya cargados en el frontend */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "2 1 260px" }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>Buscar</label>
-                  <input
-                    type="text"
-                    placeholder="Buscar por propiedad, valor o dispositivo..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    style={{ padding: "8px 12px", borderRadius: 8, border: "1.5px solid #ddd", fontSize: 14, background: "#f8f9fa" }}
-                  />
-                </div>
+  <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Buscar</label>
+  <input
+    type="text"
+    placeholder="Buscar por propiedad, valor o dispositivo..."
+    value={searchText}
+    onChange={(e) => setSearchText(e.target.value)}
+    style={{
+      padding: "8px 12px",
+      borderRadius: 8,
+      border: `1.5px solid var(--border-color)`,
+      fontSize: 14,
+      background: "var(--bg-main)",
+      color: "var(--text-primary)",
+      fontFamily: "inherit",
+      transition: "border-color 0.2s ease, background 0.2s ease",
+    }}
+  />
+</div>
 
                 <div style={{ display: "flex", alignItems: "flex-end" }}>
                   <button
-                    onClick={() => loadModalTelemetry(selectedDevice)}
-                    disabled={modalLoading}
-                    style={{
-                      padding: "8px 18px", borderRadius: 8,
-                      background: "#6c63ff", color: "#fff",
-                      border: "none", fontWeight: 600,
-                      cursor: modalLoading ? "not-allowed" : "pointer",
-                      fontSize: 14, opacity: modalLoading ? 0.7 : 1,
-                    }}
-                  >
-                    {modalLoading ? "⏳ Cargando..." : "🔄 Actualizar"}
-                  </button>
+  onClick={() => loadModalTelemetry(selectedDevice)}
+  disabled={modalLoading}
+  style={{
+  padding: "6px 14px",
+  borderRadius: 8,
+  background: "var(--color-primary)", // color principal del mockup
+  color: "#fff",
+  border: "1px solid var(--color-primary)",
+  fontWeight: 600,
+  fontFamily: "inherit",
+  fontSize: 14,
+  cursor: modalLoading ? "not-allowed" : "pointer",
+  opacity: modalLoading ? 0.7 : 1,
+  transition: "background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease",
+  boxShadow: modalLoading ? "none" : "0 4px 12px rgba(0,108,53,0.4)",
+}}
+  onMouseEnter={(e) => !modalLoading && (e.currentTarget.style.background = "#00532b")}
+  onMouseLeave={(e) => !modalLoading && (e.currentTarget.style.background = "var(--color-primary)")}
+>
+  {modalLoading ? "⏳ Cargando..." : "🔄 Actualizar"}
+</button>
                 </div>
               </div>
 
               {/* Contador de registros visibles */}
-              <div style={{ fontSize: 13, color: "#888" }}>
-                Mostrando <strong>{limitedRows.length}</strong> de <strong>{filteredRows.length}</strong> registros
-                {filteredRows.length > 100 && " (máximo 100)"}
-              </div>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+  Mostrando <strong style={{ color: "var(--text-primary)" }}>{limitedRows.length}</strong> de <strong style={{ color: "var(--text-primary)" }}>{filteredRows.length}</strong> registros
+  {filteredRows.length > 100 && " (máximo 100)"}
+</div>
 
               {/* Tabla de resultados */}
-              <div style={{ overflowY: "auto", flex: 1, borderRadius: 8, border: "1px solid #eee" }}>
+              <div style={{ overflowY: "auto", flex: 1, borderRadius: 8, border: "1px solid var(--border-color)", background: "var(--bg-card)" }}>
                 {modalLoading ? (
-                  <div style={{ padding: 40, textAlign: "center", color: "#aaa" }}>Cargando datos...</div>
+                  <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>Cargando datos...</div>
                 ) : limitedRows.length === 0 ? (
-                  <div style={{ padding: 40, textAlign: "center", color: "#aaa" }}>No hay registros de telemetría.</div>
+                  <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>No hay registros de telemetría.</div>
                 ) : (
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
                     <thead>
-                      <tr style={{ background: "#f4f4f8", position: "sticky", top: 0 }}>
+                      <tr style={{ background: "var(--bg-card)", position: "sticky", top: 0 }}>
                         <th style={thStyle}>Fecha / Hora</th>
                         <th style={thStyle}>Dispositivo</th>
                         <th style={thStyle}>Propiedad</th>
@@ -341,16 +375,16 @@ useEffect(() => {
                     </thead>
                     <tbody>
                       {limitedRows.map((row, idx) => (
-                        <tr key={row.rowId} style={{ background: idx % 2 === 0 ? "#fff" : "#fafafa" }}>
+                        <tr key={row.rowId} style={{ background: idx % 2 === 0 ? "var(--bg-card)" : "var(--bg-hover)" }}>
                           <td style={tdStyle}>
                             {row.timestamp ? new Date(row.timestamp).toLocaleString() : "Sin fecha"}
                           </td>
                           <td style={tdStyle}>
-                            <span style={{ background: "#ede9ff", color: "#6c63ff", padding: "2px 8px", borderRadius: 12, fontWeight: 600, fontSize: 12 }}>
+                            <span style={{ background: "var(--bg-card)", color: "var(--color-primary)", padding: "2px 8px", borderRadius: 12, fontWeight: 600, fontSize: 12 }}>
                               {row.deviceCode}
                             </span>
                           </td>
-                          <td style={{ ...tdStyle, fontFamily: "monospace", color: "#444" }}>{row.property}</td>
+                          <td style={{ ...tdStyle, fontFamily: "monospace", color: "var(--text-primary)" }}>{row.property}</td>
                           <td style={{ ...tdStyle, fontWeight: 600 }}>{row.value}</td>
                         </tr>
                       ))}
@@ -363,7 +397,7 @@ useEffect(() => {
               <div style={{ textAlign: "right" }}>
                 <button
                   onClick={() => setShowHistoryModal(false)}
-                  style={{ padding: "8px 24px", borderRadius: 8, background: "#eee", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 14 }}
+                  style={{ padding: "8px 24px", borderRadius: 8, background: "var(--bg-card)", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 14, color: "var(--text-primary)" }}
                 >
                   Cerrar
                 </button>
@@ -390,14 +424,14 @@ export default App;
 const thStyle = {
   padding: "10px 14px",
   textAlign: "left",
-  fontWeight: 700,
-  color: "#555",
-  borderBottom: "2px solid #eee",
+  fontWeight: 600,
+  color: "var(--text-secondary)",
+  borderBottom: "1px solid var(--border-color)",
   fontSize: 13
 };
 
 const tdStyle = {
   padding: "9px 14px",
-  borderBottom: "1px solid #f0f0f0",
-  color: "#333"
+  borderBottom: "1px solid var(--bg-hover)",
+  color: "var(--text-primary)"
 };

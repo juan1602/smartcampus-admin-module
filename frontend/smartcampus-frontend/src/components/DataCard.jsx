@@ -52,7 +52,7 @@ export default function DataCard({ title, count, data, type, onOpen }) {
                     className="info-button"
                     onClick={() => setTwinInfo(item)}
                   >
-                    ℹ️ Información
+                    Información
                   </button>
                 </>
               )}
@@ -87,7 +87,7 @@ export default function DataCard({ title, count, data, type, onOpen }) {
       {/* Boton ver historial completo - solo para telemetría */}
       {type === "telemetry" && (
         <button className="btn-ver-historial" onClick={onOpen}>
-          📋Ver historial completo
+          Ver historial completo
         </button>
       )}
 

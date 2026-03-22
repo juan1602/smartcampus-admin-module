@@ -231,13 +231,34 @@ export default function TelemetryCharts({ devices }) {
         <button
           onClick={loadData}
           disabled={loading}
-          style={{
-            padding: "8px 18px", borderRadius: 8,
-            background: "#6c63ff", color: "#fff",
-            border: "none", fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
-            fontSize: 14, opacity: loading ? 0.7 : 1
-          }}
+        style={{
+  padding: "0.5rem 1rem", // más pequeño
+  borderRadius: 12,
+  background: loading ? "rgba(0, 108, 53, 0.5)" : "var(--color-primary)",
+  color: "#fff",
+  border: "1px solid var(--color-primary)",
+  fontWeight: 600,
+  fontFamily: "inherit",
+  cursor: loading ? "not-allowed" : "pointer",
+  fontSize: 14,
+  opacity: loading ? 0.7 : 1,
+  boxShadow: loading ? "none" : "0 4px 12px rgba(0,108,53,0.4)",
+  transition: "transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease"
+}}
+onMouseEnter={e => {
+  if (!loading) {
+    e.currentTarget.style.transform = "translateY(-2px)";
+    e.currentTarget.style.boxShadow = "0 6px 18px rgba(0,108,53,0.5)";
+    e.currentTarget.style.background = "#00532b";
+  }
+}}
+onMouseLeave={e => {
+  if (!loading) {
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,108,53,0.4)";
+    e.currentTarget.style.background = "var(--color-primary)";
+  }
+}}
         >
           {loading ? "⏳ Cargando..." : "🔄 Actualizar"}
         </button>
@@ -264,9 +285,22 @@ export default function TelemetryCharts({ devices }) {
         ].map(({ label, prop, unit, color }) => {
           const value = avg(prop);
           return (
-            <div key={label} style={{ background: "#f8f9fa", borderRadius: 8, padding: "1rem" }}>
-              <p style={{ fontSize: 13, color: "#888", margin: "0 0 4px" }}>{label}</p>
-              <p style={{ fontSize: 24, fontWeight: 600, margin: 0, color }}>
+            <div key={label} style={{
+  background: "var(--bg-card)",
+  borderRadius: 8,
+  padding: "1rem"
+}}>
+  <p style={{
+    fontSize: 13,
+    color: "var(--text-secondary)",
+    margin: "0 0 4px"
+  }}>{label}</p>
+  <p style={{
+    fontSize: 24,
+    fontWeight: 600,
+    margin: 0,
+    color: "var(--text-primary)"
+  }}>
                 {value !== "-" ? `${value} ${unit}` : "Sin datos"}
               </p>
             </div>
@@ -275,8 +309,19 @@ export default function TelemetryCharts({ devices }) {
       </div>
 
       {/* Gráfica temperatura — ancho completo */}
-      <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem", marginBottom: "1rem" }}>
-        <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 1rem", color: "#555" }}>
+      <div style={{
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-color)",
+  borderRadius: 12,
+  padding: "1.25rem",
+  marginBottom: "1rem"
+}}>
+  <p style={{
+    fontSize: 14,
+    fontWeight: 600,
+    margin: "0 0 1rem",
+    color: "var(--text-primary)"
+  }}>
           🌡️ Temperatura vs tiempo
         </p>
         <div style={{ position: "relative", width: "100%", height: 220 }}>
@@ -285,9 +330,19 @@ export default function TelemetryCharts({ devices }) {
       </div>
 
       {/* Gráficas batería y humedad — dos columnas */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-        <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
-          <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 1rem", color: "#555" }}>
+     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+  <div style={{
+    background: "var(--bg-card)",
+    border: "1px solid var(--border-color)",
+    borderRadius: 12,
+    padding: "1.25rem"
+  }}>
+    <p style={{
+      fontSize: 14,
+      fontWeight: 600,
+      margin: "0 0 1rem",
+      color: "var(--text-primary)"
+    }}>
             🔋 Batería vs tiempo
           </p>
           <div style={{ position: "relative", width: "100%", height: 180 }}>
@@ -295,8 +350,18 @@ export default function TelemetryCharts({ devices }) {
           </div>
         </div>
 
-        <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
-          <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 1rem", color: "#555" }}>
+        <div style={{
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-color)",
+  borderRadius: 12,
+  padding: "1.25rem"
+}}>
+  <p style={{
+    fontSize: 14,
+    fontWeight: 600,
+    margin: "0 0 1rem",
+    color: "var(--text-primary)"
+  }}>
             💧 Humedad vs tiempo
           </p>
           <div style={{ position: "relative", width: "100%", height: 180 }}>
