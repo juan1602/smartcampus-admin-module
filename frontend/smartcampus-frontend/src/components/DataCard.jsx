@@ -38,7 +38,7 @@ export default function DataCard({ title, count, data, type, onOpen, onDeviceCli
                     >
                       {item.code}
                   </strong>
-                  <span className={`status ${item.status?.towerCase() || "unknown"}`}>
+                  <span className={`status ${item.status?.toLowerCase() || "unknown"}`}>
                     {item.status || "Desconocido"}
                   </span>
                 </>
