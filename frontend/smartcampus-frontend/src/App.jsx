@@ -13,6 +13,7 @@ import TelemetryCharts from "./components/TelemetryCharts";
 function App() {
 
   // ── Estados globales de datos ───────────────────────────────────────────────
+  const [highlightedDeviceId, setHighlightedDeviceId] = useState(null);
   const [devices, setDevices] = useState([]);
   const [twins, setTwins] = useState([]);
   const [telemetry, setTelemetry] = useState([]);
@@ -150,7 +151,10 @@ useEffect(() => {
             count={devices.length}
             data={devices}
             type="device"
-            onDeviceClick={() => setActiveTab(1)}
+            onDeviceClick={(device) => {
+              setActiveTab(1);
+              setHighlightedDeviceId(device.id);
+            }}
           />
           <DataCard
             title="Digital Twins"
@@ -178,6 +182,8 @@ useEffect(() => {
           properties={properties}
           onRefresh={loadData}
           onFormOpen={setIsFormOpen}
+          highlightedDeviceId={highlightedDeviceId}
+          onClearHighlight={() => setHighlightedDeviceId(null)}
         />
       )
     },

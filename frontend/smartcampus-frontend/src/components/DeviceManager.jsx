@@ -3,7 +3,7 @@ import { createDevice, updateDevice, deleteDevice, assignProperties, updatePrope
 import "./DeviceManager.css";
 import yaml from "js-yaml";
 
-export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen }) {
+export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight }) {
 
   // ── Estados del formulario ──────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +24,18 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       onFormOpen(showForm);
     }
   }, [showForm, onFormOpen]);
+
+  useEffect(() => {
+    if (highlightedDeviceId) {
+      const el = document.getElementById(`device-card-${highlightedDeviceId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+          onClearHighlight?.();
+        }, 3000);
+      }
+    }
+  }, [highlightedDeviceId, onClearHighlight]);
   useEffect(() => {
   if (message) {
     const timer = setTimeout(() => {
@@ -401,7 +413,11 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
           {devices.map((device) => {
             const telemetry = getTelemetryForDevice(device.id);
             return (
-              <div key={device.id} className="device-card">
+              <div key={device.id} 
+              id={`device-card-${device.id}`}
+              className="device-card"
+              style={highlightedDeviceId === device.id ? { border: "2px solid var(--primary-color)", boxShadow: "0 0 10px var(--primary-color)" } : {}}
+              >
 
                 {/* Encabezado de la card */}
                 <div className="device-header-card">
