@@ -37,7 +37,7 @@ public class MqttConfig {
                 new MqttPahoMessageDrivenChannelAdapter(
                         "smartcampus-client",
                         mqttClientFactory(),
-                        "devices/+/telemetry"
+                        "smartcampus/telemetry"
                 );
 
         adapter.setCompletionTimeout(5000);
