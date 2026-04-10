@@ -2,7 +2,7 @@ import "./DataCard.css";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-export default function DataCard({ title, count, data, type, onOpen }) {
+export default function DataCard({ title, count, data, type, onOpen, onDeviceClick }) {
 
   const [twinInfo, setTwinInfo] = useState(null);
   let telemetryData = {};
@@ -34,13 +34,16 @@ export default function DataCard({ title, count, data, type, onOpen }) {
 
               {type === "device" && (
                 <>
-                  <strong>{item.code}</strong>
-
-                  <span className={`status ${item.status?.toLowerCase()}`}>
-                    {item.status}
+                  <strong onClick={() => onDeviceClick(item)} style={{cursor:"pointer", textDecoration: "underline", textDecorationColor: "var(--primary-color)"}}
+                    >
+                      {item.code}
+                  </strong>
+                  <span className={`status ${item.status?.towerCase() || "unknown"}`}>
+                    {item.status || "Desconocido"}
                   </span>
                 </>
               )}
+              
 
               {/* DIGITAL TWINS */}
 

@@ -150,6 +150,7 @@ useEffect(() => {
             count={devices.length}
             data={devices}
             type="device"
+            onDeviceClick={() => setActiveTab(1)}
           />
           <DataCard
             title="Digital Twins"
