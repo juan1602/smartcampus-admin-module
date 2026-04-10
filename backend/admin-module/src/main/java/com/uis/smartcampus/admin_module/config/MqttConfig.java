@@ -17,8 +17,11 @@ public class MqttConfig {
     public DefaultMqttPahoClientFactory mqttClientFactory() {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
-        options.setServerURIs(new String[]{"tcp://localhost:1883"});
+        options.setServerURIs(new String[]{"ssl://aa6c58bbc2284bd6b0f776d64c15e56b.s1.eu.hivemq.cloud:8883"});
+        options.setUserName("smartcampus");
+        options.setPassword("Proyectogradouis2026".toCharArray());
         options.setAutomaticReconnect(true);
+        options.setCleanSession(true);
         factory.setConnectionOptions(options);
         return factory;
     }
