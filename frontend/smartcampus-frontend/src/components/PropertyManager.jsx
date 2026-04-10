@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createProperty, updateProperty, deleteProperty } from "../services/propertyService";
 import "./PropertyManager.css";
 
-export default function PropertyManager({ properties, onRefresh }) {
+export default function PropertyManager({ properties, onRefresh, onFormOpen }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: "", unit: "", description: "", writable: false });
@@ -14,6 +14,7 @@ export default function PropertyManager({ properties, onRefresh }) {
     setEditingId(null);
     setShowForm(false);
     setMessage("");
+    onFormOpen?.(false);
   };
 
   const handleEdit = (property) => {
@@ -25,6 +26,7 @@ export default function PropertyManager({ properties, onRefresh }) {
     });
     setEditingId(property.id);
     setShowForm(true);
+    onFormOpen?.(true);
   };
 
   const handleSubmit = async (e) => {
@@ -71,7 +73,7 @@ export default function PropertyManager({ properties, onRefresh }) {
     <div className="property-manager">
       <div className="property-header">
         <h2>Gestionar Propiedades ({properties.length})</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+        <button onClick={() => { setShowForm(!showForm); onFormOpen?.(!showForm); }} className="btn-primary">
           {showForm ? "Cancelar" : "+ Nueva Propiedad"}
         </button>
       </div>
