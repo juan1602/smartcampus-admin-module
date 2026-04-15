@@ -515,6 +515,161 @@
   flex-shrink: 0;
 }
 
+/* ── Filter bar ────────────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 160px;
+  padding: 0.45rem 0.7rem;
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.filter-select {
+  padding: 0.45rem 0.6rem;
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.btn-clear-filters {
+  padding: 0.45rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.btn-clear-filters:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.btn-view {
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.btn-view.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--text-primary);
+}
+
+/* ── Namespace & Tags badges ────────────────────────────────────────────────── */
+.badge-namespace {
+  display: inline-block;
+  margin-top: 0.2rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.badge-tag {
+  padding: 0.12rem 0.45rem;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.field-hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+  display: block;
+}
+
+/* ── Vista lista ────────────────────────────────────────────────────────────── */
+.devices-list-wrapper {
+  overflow-x: auto;
+}
+
+.devices-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.devices-list-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid var(--border-color);
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.devices-list-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.devices-list-table tbody tr:hover {
+  background: var(--bg-hover, rgba(255,255,255,0.04));
+}
+
+.row-highlighted {
+  outline: 2px solid var(--primary-color);
+}
+
+.list-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.list-actions button {
+  padding: 0.3rem 0.45rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.list-actions .btn-edit  { background: var(--color-primary); }
+.list-actions .btn-clone { background: #f59e0b; }
+.list-actions .btn-delete { background: #ef4444; }
+.list-actions .btn-info  { background: var(--bg-card); border: 1px solid var(--border-color); }
+
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty-state {
   text-align: center;

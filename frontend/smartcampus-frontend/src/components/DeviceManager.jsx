@@ -14,11 +14,20 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     name: "",
     type: "SENSOR",
     location: "",
+    namespace: "",
+    tags: "",
     selectedProperties: [],
     customProperties: []
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // ── Filtros y vista ─────────────────────────────────────────────────────────
+  const [filterText, setFilterText] = useState("");
+  const [filterNamespace, setFilterNamespace] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
   
   // Notifica al padre cuando se abre/cierra el formulario para pausar polling
   useEffect(() => {
@@ -98,7 +107,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
   // ── Formulario ──────────────────────────────────────────────────────────────
 
   const resetForm = () => {
-    setFormData({ code: "", name: "", type: "SENSOR", location: "", selectedProperties: [], customProperties: [] });
+    setFormData({ code: "", name: "", type: "SENSOR", location: "", namespace: "", tags: "", selectedProperties: [], customProperties: [] });
     setEditingId(null);
     setShowForm(false);
     setMessage("");
@@ -110,6 +119,8 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       name: device.name || "",
       type: device.type || "SENSOR",
       location: device.location || "",
+      namespace: device.namespace || "",
+      tags: device.tags || "",
       selectedProperties: device.properties?.length > 0 ? device.properties.map(p => p.id) : [],
       customProperties: []
     });
@@ -170,6 +181,8 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
         name: formData.name,
         type: formData.type,
         location: formData.location,
+        namespace: formData.namespace,
+        tags: formData.tags,
         status: "OFFLINE"
       };
       if (editingId) {
@@ -211,6 +224,8 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
         name: device.name ? `${device.name} (copia)` : "",
         type: device.type || "SENSOR",
         location: device.location || "",
+        namespace: device.namespace || "",
+        tags: device.tags || "",
         status: "OFFLINE"
       };
       const response = await createDevice(payload);
@@ -349,6 +364,21 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     }
   };
 
+  // ── Filtrado ────────────────────────────────────────────────────────────────
+
+  const namespaceOptions = [...new Set((devices || []).map(d => d.namespace).filter(Boolean))].sort();
+
+  const filteredDevices = (devices || []).filter(d => {
+    const text = filterText.toLowerCase();
+    if (text && !d.code?.toLowerCase().includes(text) && !d.name?.toLowerCase().includes(text)) return false;
+    if (filterNamespace && d.namespace !== filterNamespace) return false;
+    if (filterType && d.type !== filterType) return false;
+    if (filterStatus && d.status !== filterStatus) return false;
+    return true;
+  });
+
+  const hasActiveFilters = filterText || filterNamespace || filterType || filterStatus;
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -356,13 +386,47 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
 
       {/* Encabezado */}
       <div className="device-header">
-        <h2>Gestionar Dispositivos ({devices.length})</h2>
+        <h2>Gestionar Dispositivos ({filteredDevices.length}{hasActiveFilters ? ` / ${devices.length}` : ""})</h2>
         <button type="button" onClick={() => {
           setShowForm(!showForm);
-          if (showForm) setInfoDevice(null); // Cierra el modal si está abierto
+          if (showForm) setInfoDevice(null);
         }} className="btn-primary">
           {showForm ? "✕ Cancelar" : "+ Nuevo Dispositivo"}
         </button>
+      </div>
+
+      {/* Barra de filtros */}
+      <div className="filter-bar">
+        <input
+          className="filter-search"
+          type="text"
+          placeholder="Buscar por código o nombre..."
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+        />
+        <select className="filter-select" value={filterNamespace} onChange={(e) => setFilterNamespace(e.target.value)}>
+          <option value="">Todos los namespaces</option>
+          {namespaceOptions.map(ns => <option key={ns} value={ns}>{ns}</option>)}
+        </select>
+        <select className="filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+          <option value="">Todos los tipos</option>
+          {deviceTypes.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select className="filter-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <option value="">Todos los estados</option>
+          <option value="ONLINE">ONLINE</option>
+          <option value="OFFLINE">OFFLINE</option>
+          <option value="ERROR">ERROR</option>
+        </select>
+        {hasActiveFilters && (
+          <button className="btn-clear-filters" onClick={() => { setFilterText(""); setFilterNamespace(""); setFilterType(""); setFilterStatus(""); }}>
+            ✕ Limpiar
+          </button>
+        )}
+        <div className="view-toggle">
+          <button className={`btn-view ${viewMode === "grid" ? "active" : ""}`} onClick={() => setViewMode("grid")} title="Vista tarjetas">⊞</button>
+          <button className={`btn-view ${viewMode === "list" ? "active" : ""}`} onClick={() => setViewMode("list")} title="Vista lista">☰</button>
+        </div>
       </div>
 
       {/* Mensaje de éxito o error */}
@@ -416,6 +480,25 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 />
+              </div>
+              <div className="form-group">
+                <label>Namespace</label>
+                <input
+                  type="text"
+                  placeholder="Ej: edificio-a/piso-2"
+                  value={formData.namespace}
+                  onChange={(e) => setFormData({ ...formData, namespace: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Tags</label>
+                <input
+                  type="text"
+                  placeholder="Ej: lab, interior, critico"
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                />
+                <small className="field-hint">Separados por coma</small>
               </div>
             </div>
           </div>
@@ -526,30 +609,29 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
         </form>
       )}
 
-      {/* Grid de cards */}
-      {devices.length > 0 ? (
+      {/* Vista tarjetas */}
+      {filteredDevices.length > 0 && viewMode === "grid" && (
         <div className="devices-grid">
-          {devices.map((device) => {
+          {filteredDevices.map((device) => {
             const telemetry = getTelemetryForDevice(device.id);
+            const tagList = device.tags ? device.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
             return (
-              <div key={device.id} 
-              id={`device-card-${device.id}`}
-              className="device-card"
-              style={highlightedDeviceId === device.id ? { border: "2px solid var(--primary-color)", boxShadow: "0 0 10px var(--primary-color)" } : {}}
+              <div key={device.id}
+                id={`device-card-${device.id}`}
+                className="device-card"
+                style={highlightedDeviceId === device.id ? { border: "2px solid var(--primary-color)", boxShadow: "0 0 10px var(--primary-color)" } : {}}
               >
-
-                {/* Encabezado de la card */}
                 <div className="device-header-card">
                   <div>
                     <h3>{device.code}</h3>
                     {device.name && <p className="device-name">{device.name}</p>}
+                    {device.namespace && <span className="badge-namespace">{device.namespace}</span>}
                   </div>
                   <span className={`device-status ${device.status?.toLowerCase()}`}>
                     {device.status}
                   </span>
                 </div>
 
-                {/* Info del dispositivo */}
                 <div className="device-info">
                   {device.type && (
                     <div className="info-row">
@@ -569,16 +651,15 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                       <span className="value">{new Date(device.lastSeen).toLocaleString()}</span>
                     </div>
                   )}
-
-                  {/* Tabla de propiedades con telemetría */}
+                  {tagList.length > 0 && (
+                    <div className="tag-list">
+                      {tagList.map(tag => <span key={tag} className="badge-tag">{tag}</span>)}
+                    </div>
+                  )}
                   {device.properties?.length > 0 && (
                     <table className="device-properties-table">
                       <thead>
-                        <tr>
-                          <th>Propiedad</th>
-                          <th>Unidad</th>
-                          <th>Valor</th>
-                        </tr>
+                        <tr><th>Propiedad</th><th>Unidad</th><th>Valor</th></tr>
                       </thead>
                       <tbody>
                         {device.properties.map((p) => (
@@ -593,20 +674,72 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                   )}
                 </div>
 
-                {/* Acciones */}
                 <div className="device-actions">
                   <button onClick={() => handleEdit(device)} className="btn-edit">✏️ Editar</button>
                   <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋 Clonar</button>
                   <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️ Eliminar</button>
                   <button onClick={() => setInfoDevice(device)} className="btn-info">ℹ️ Información</button>
                 </div>
-
               </div>
             );
           })}
         </div>
-      ) : (
-        <p className="empty-state">No hay dispositivos registrados</p>
+      )}
+
+      {/* Vista lista */}
+      {filteredDevices.length > 0 && viewMode === "list" && (
+        <div className="devices-list-wrapper">
+          <table className="devices-list-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Namespace</th>
+                <th>Tags</th>
+                <th>Ubicación</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDevices.map((device) => {
+                const tagList = device.tags ? device.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+                return (
+                  <tr key={device.id} id={`device-card-${device.id}`}
+                    className={highlightedDeviceId === device.id ? "row-highlighted" : ""}
+                  >
+                    <td><strong>{device.code}</strong></td>
+                    <td>{device.name || "-"}</td>
+                    <td><span className="device-type">{device.type}</span></td>
+                    <td>{device.namespace ? <span className="badge-namespace">{device.namespace}</span> : "-"}</td>
+                    <td>
+                      <div className="tag-list">
+                        {tagList.length > 0 ? tagList.map(tag => <span key={tag} className="badge-tag">{tag}</span>) : "-"}
+                      </div>
+                    </td>
+                    <td>{device.location || "-"}</td>
+                    <td><span className={`device-status ${device.status?.toLowerCase()}`}>{device.status}</span></td>
+                    <td>
+                      <div className="list-actions">
+                        <button onClick={() => handleEdit(device)} className="btn-edit">✏️</button>
+                        <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋</button>
+                        <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️</button>
+                        <button onClick={() => setInfoDevice(device)} className="btn-info">ℹ️</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {filteredDevices.length === 0 && (
+        <p className="empty-state">
+          {hasActiveFilters ? "Ningún dispositivo coincide con los filtros" : "No hay dispositivos registrados"}
+        </p>
       )}
 
       {/* Modal de información del dispositivo */}

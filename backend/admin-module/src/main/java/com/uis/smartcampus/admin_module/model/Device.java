@@ -40,6 +40,12 @@ public class Device {
 
     private LocalDateTime lastSeen;
 
+    // Organización lógica
+    private String namespace;
+
+    @Column(columnDefinition = "TEXT")
+    private String tags; // valores separados por coma, ej: "lab,interior,critico"
+
     // Configuración flexible
     @Column(columnDefinition = "TEXT")
     private String configJson;
