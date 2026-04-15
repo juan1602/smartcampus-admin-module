@@ -390,6 +390,7 @@
 }
 
 .btn-edit,
+.btn-clone,
 .btn-delete,
 .btn-info {
   flex: 1;
@@ -427,7 +428,18 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
+.btn-clone {
+  background: #f59e0b;
+  color: var(--text-primary);
+}
+
+.btn-clone:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-edit:hover,
+.btn-clone:hover,
 .btn-delete:hover,
 .btn-info:hover {
   opacity: 0.95;

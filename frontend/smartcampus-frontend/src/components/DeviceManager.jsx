@@ -161,6 +161,39 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     }
   };
 
+  const handleClone = async (device) => {
+    const baseCode = device.code.replace(/-COPIA(-\d+)?$/, "");
+    const existingCodes = (devices || []).map(d => d.code);
+    let newCode = `${baseCode}-COPIA`;
+    let counter = 1;
+    while (existingCodes.includes(newCode)) {
+      newCode = `${baseCode}-COPIA-${counter++}`;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        code: newCode,
+        name: device.name ? `${device.name} (copia)` : "",
+        type: device.type || "SENSOR",
+        location: device.location || "",
+        status: "OFFLINE"
+      };
+      const response = await createDevice(payload);
+      const newDeviceId = response.data.id;
+      const propertyIds = (device.properties || []).map(p => p.id);
+      if (propertyIds.length > 0) {
+        await assignProperties(newDeviceId, propertyIds);
+      }
+      setMessage(`Dispositivo clonado como ${newCode}`);
+      onRefresh();
+    } catch (error) {
+      setMessage("Error al clonar: " + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm("¿Estás seguro de que deseas eliminar este dispositivo?")) {
       setLoading(true);
@@ -477,6 +510,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                 {/* Acciones */}
                 <div className="device-actions">
                   <button onClick={() => handleEdit(device)} className="btn-edit">✏️ Editar</button>
+                  <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋 Clonar</button>
                   <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️ Eliminar</button>
                   <button onClick={() => setInfoDevice(device)} className="btn-info">ℹ️ Información</button>
                 </div>

@@ -59,7 +59,7 @@ export default function DataCard({ title, count, data, type, onOpen, onDeviceCli
                         alignItems: "center",
                         gap: "4px"
                       }}>
-                       <span style={{ color: "var(--color-primary)", fontWeight: 600 }}>{item.device.code}</span>
+                       Dispositivo:<span style={{ color: "var(--color-primary)", fontWeight: 600 }}>{item.device.code}</span>
                       </span>
                       )}
                   </div>
