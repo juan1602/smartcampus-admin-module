@@ -395,13 +395,17 @@
 .btn-delete,
 .btn-info {
   flex: 1;
-  padding: 0.55rem 0.5rem;
+  padding: 0.55rem 0.4rem;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 500;
   transition: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .btn-edit {
