@@ -28,6 +28,7 @@ public class TelemetryService {
     private final DeviceRepository deviceRepository;
     private final DigitalTwinRepository twinRepository;
     private final TelemetryRecordRepository telemetryRecordRepository;
+    private final MqttPublisherService mqttPublisherService;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -76,82 +77,85 @@ public class TelemetryService {
             return;
 
         }
-        Object batteryObject = filteredData.get("baterry_level");
+        Object batteryObject = filteredData.get("battery_level");
         if (batteryObject != null) {
-
             double batteryLevel = Double.parseDouble(batteryObject.toString());
-
             if (batteryLevel == 0) {
-
                 device.setStatus("OFFLINE");
-            }
-            else if(batteryLevel<5){
+            } else if (batteryLevel < 5) {
                 device.setStatus("WARNING");
                 System.out.println("⚠️ WARNING: Battery level critically low for device " + deviceCode);
-            }
-            else if (batteryLevel < 20) {
+            } else if (batteryLevel < 20) {
                 device.setStatus("LOW_BATTERY");
             } else {
-
-                device.setStatus("ONLINE");
-            } 
-        } else{
-                // si no se reporta nivel de batería, asumir que el dispositivo está online
                 device.setStatus("ONLINE");
             }
+        } else {
+            device.setStatus("ONLINE");
+        }
 
-        // 🔹 guardar historial
+        // Guardar historial
         String json = mapper.writeValueAsString(filteredData);
-
         TelemetryRecord record = new TelemetryRecord();
         record.setDevice(device);
         record.setTelemetryJson(json);
         record.setTimestamp(LocalDateTime.now());
-
         telemetryRecordRepository.save(record);
 
-        // 🔹 actualizar digital twin
-        DigitalTwin twin = device.getTwin();
+        System.out.println("✅ Telemetry saved for device: " + deviceCode);
 
-        Map<String, Object> existingTelemetry = new HashMap<>();
-
-        if (twin.getTelemetryJson() != null && !twin.getTelemetryJson().isEmpty()) {
-
-            existingTelemetry = mapper.readValue(
-                    twin.getTelemetryJson(),
-                    new TypeReference<Map<String, Object>>() {}
-            );
-
-        }
-
-        // 🔹 fusionar SOLO propiedades válidas
-        existingTelemetry.putAll(filteredData);
-
-        // 🔹 limpiar propiedades inválidas que pudieran existir
-        existingTelemetry.keySet().removeIf(key -> !validProperties.contains(key));
-
-        String mergedJson = mapper.writeValueAsString(existingTelemetry);
-
-        twin.setTelemetryJson(mergedJson);
-        twin.setLastUpdate(LocalDateTime.now());
-
-        twinRepository.save(twin);
-
-        System.out.println("✅ Telemetry processed for device: " + deviceCode);
-        System.out.println("Twin data: " + mergedJson);
+        // Publicar ACK — el Digital Twin se actualiza al recibir la confirmación
+        mqttPublisherService.publishAck(deviceCode, filteredData);
 
     } catch (Exception e) {
-
         e.printStackTrace();
         throw new RuntimeException("Failed to process telemetry for device: " + deviceCode);
-
     }
 }
 
-    // 🆕 NUEVO MÉTODO
+    /**
+     * Actualiza el Digital Twin con los datos confirmados por Node-RED.
+     * Solo se llama al recibir el mensaje en smartcampus/confirm.
+     */
+    @Transactional
+    public void applyConfirmedTelemetry(String deviceCode, Map<String, Object> confirmedData) {
+        try {
+            Device device = deviceRepository.findByCode(deviceCode)
+                    .orElseThrow(() -> new RuntimeException("Device not found: " + deviceCode));
+
+            Set<String> validProperties = device.getProperties()
+                    .stream()
+                    .map(p -> p.getName().toLowerCase())
+                    .collect(Collectors.toSet());
+
+            DigitalTwin twin = device.getTwin();
+            Map<String, Object> existing = new HashMap<>();
+
+            if (twin.getTelemetryJson() != null && !twin.getTelemetryJson().isEmpty()) {
+                existing = mapper.readValue(
+                        twin.getTelemetryJson(),
+                        new TypeReference<Map<String, Object>>() {}
+                );
+            }
+
+            existing.putAll(confirmedData);
+            existing.keySet().removeIf(key -> !validProperties.contains(key));
+
+            String mergedJson = mapper.writeValueAsString(existing);
+            twin.setTelemetryJson(mergedJson);
+            twin.setLastUpdate(LocalDateTime.now());
+            twinRepository.save(twin);
+
+            System.out.println("✅ Digital Twin actualizado tras confirmación: " + deviceCode);
+            System.out.println("Twin data: " + mergedJson);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to apply confirmed telemetry for device: " + deviceCode);
+        }
+    }
+
     public List<TelemetryRecord> getTelemetryHistory(Long deviceId) {
-
-    return telemetryRecordRepository.findByDeviceIdOrderByTimestampDesc(deviceId);
-
+        return telemetryRecordRepository.findByDeviceIdOrderByTimestampDesc(deviceId);
     }
 }
