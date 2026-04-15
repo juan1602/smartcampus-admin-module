@@ -100,10 +100,10 @@ export default function DataCard({ title, count, data, type, onOpen, onDeviceCli
         <p className="empty">No hay datos disponibles</p>
 
       )}
-      {/* Boton ver historial completo - solo para telemetría */}
-      {type === "telemetry" && (
+      {/* Botón "Ver todos" — para todos los tipos */}
+      {onOpen && (
         <button className="btn-ver-historial" onClick={onOpen}>
-          Ver historial completo
+          {type === "telemetry" ? "Ver historial completo" : "Ver todos"}
         </button>
       )}
 

@@ -25,12 +25,20 @@ function App() {
   // ── Estados del modal de historial ─────────────────────────────────────────
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState("all");
-  // modalTelemetry guarda los registros del modal por separado
-  // para no mezclarlos con la telemetría del dashboard
   const [modalTelemetry, setModalTelemetry] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
-  // searchText es el texto del buscador dentro del modal
   const [searchText, setSearchText] = useState("");
+
+  // ── Estados modal Dispositivos ──────────────────────────────────────────────
+  const [showDevicesModal, setShowDevicesModal] = useState(false);
+  const [devModalText, setDevModalText] = useState("");
+  const [devModalType, setDevModalType] = useState("");
+  const [devModalStatus, setDevModalStatus] = useState("");
+  const [devModalNamespace, setDevModalNamespace] = useState("");
+
+  // ── Estados modal Twins ─────────────────────────────────────────────────────
+  const [showTwinsModal, setShowTwinsModal] = useState(false);
+  const [twinModalText, setTwinModalText] = useState("");
 
   // ── Estado para pausar polling durante edición ───────────────────────────────
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -140,6 +148,28 @@ useEffect(() => {
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     .slice(0, 100);
 
+  // ── Filtrado modal Dispositivos ─────────────────────────────────────────────
+  const devNamespaceOptions = [...new Set(devices.map(d => d.namespace).filter(Boolean))].sort();
+  const filteredDevModal = devices.filter(d => {
+    const q = devModalText.toLowerCase();
+    if (q && !d.code?.toLowerCase().includes(q) && !d.name?.toLowerCase().includes(q)) return false;
+    if (devModalType && d.type !== devModalType) return false;
+    if (devModalStatus && d.status !== devModalStatus) return false;
+    if (devModalNamespace && d.namespace !== devModalNamespace) return false;
+    return true;
+  });
+  const devHasFilters = devModalText || devModalType || devModalStatus || devModalNamespace;
+
+  // ── Filtrado modal Twins ────────────────────────────────────────────────────
+  const filteredTwinsModal = twins.filter(t => {
+    const q = twinModalText.toLowerCase();
+    if (!q) return true;
+    return (
+      t.name?.toLowerCase().includes(q) ||
+      t.device?.code?.toLowerCase().includes(q)
+    );
+  });
+
   // ── Definición de tabs ─────────────────────────────────────────────────────
   const tabs = [
     {
@@ -149,20 +179,21 @@ useEffect(() => {
           <DataCard
             title="Dispositivos"
             count={devices.length}
-            data={devices}
+            data={devices.slice(0, 5)}
             type="device"
             onDeviceClick={(device) => {
               setActiveTab(1);
               setHighlightedDeviceId(device.id);
             }}
+            onOpen={() => setShowDevicesModal(true)}
           />
           <DataCard
             title="Digital Twins"
             count={twins.length}
-            data={twins}
+            data={twins.slice(0, 5)}
             type="twin"
+            onOpen={() => setShowTwinsModal(true)}
           />
-          {/* onOpen llama a handleOpenHistorial que carga los datos al abrir */}
           <DataCard
             title="Historial de Telemetría"
             count={telemetry.length}
@@ -414,6 +445,143 @@ useEffect(() => {
           </div>
         )}
 
+        {/* ── Modal Dispositivos ── */}
+        {showDevicesModal && (
+          <div onClick={() => setShowDevicesModal(false)} style={overlayStyle}>
+            <div onClick={e => e.stopPropagation()} style={modalStyle}>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h2 style={{ margin: 0, fontSize: 20 }}>📟 Dispositivos ({filteredDevModal.length}{devHasFilters ? ` / ${devices.length}` : ""})</h2>
+                <button onClick={() => setShowDevicesModal(false)} style={closeBtnStyle}>✕</button>
+              </div>
+
+              {/* Filtros */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <input
+                  placeholder="Buscar código o nombre..."
+                  value={devModalText}
+                  onChange={e => setDevModalText(e.target.value)}
+                  style={inputStyle}
+                />
+                <select value={devModalNamespace} onChange={e => setDevModalNamespace(e.target.value)} style={selectStyle}>
+                  <option value="">Todos los namespaces</option>
+                  {devNamespaceOptions.map(ns => <option key={ns} value={ns}>{ns}</option>)}
+                </select>
+                <select value={devModalType} onChange={e => setDevModalType(e.target.value)} style={selectStyle}>
+                  <option value="">Todos los tipos</option>
+                  {["SENSOR","ACTUATOR","CAMERA","CONTROLLER"].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <select value={devModalStatus} onChange={e => setDevModalStatus(e.target.value)} style={selectStyle}>
+                  <option value="">Todos los estados</option>
+                  <option value="ONLINE">ONLINE</option>
+                  <option value="OFFLINE">OFFLINE</option>
+                  <option value="ERROR">ERROR</option>
+                </select>
+                {devHasFilters && (
+                  <button onClick={() => { setDevModalText(""); setDevModalType(""); setDevModalStatus(""); setDevModalNamespace(""); }} style={clearBtnStyle}>
+                    ✕ Limpiar
+                  </button>
+                )}
+              </div>
+
+              {/* Tabla */}
+              <div style={{ overflowY: "auto", flex: 1, borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                  <thead>
+                    <tr>
+                      {["Código","Nombre","Tipo","Namespace","Tags","Estado"].map(h => (
+                        <th key={h} style={thStyle}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDevModal.length === 0 ? (
+                      <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "var(--text-secondary)" }}>Sin resultados</td></tr>
+                    ) : filteredDevModal.map((d, i) => (
+                      <tr key={d.id} style={{ background: i % 2 === 0 ? "var(--bg-card)" : "var(--bg-hover)" }}>
+                        <td style={tdStyle}><strong style={{ color: "var(--color-primary)" }}>{d.code}</strong></td>
+                        <td style={tdStyle}>{d.name || "-"}</td>
+                        <td style={tdStyle}>{d.type}</td>
+                        <td style={tdStyle}>{d.namespace ? <span style={nsBadge}>{d.namespace}</span> : "-"}</td>
+                        <td style={tdStyle}>
+                          {d.tags ? d.tags.split(",").map(t => t.trim()).filter(Boolean).map(tag => (
+                            <span key={tag} style={tagBadge}>{tag}</span>
+                          )) : "-"}
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ ...statusDot, background: d.status === "ONLINE" ? "#22c55e" : d.status === "ERROR" ? "#ef4444" : "#6b7280" }}>
+                            {d.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <button onClick={() => setShowDevicesModal(false)} style={closeFooterBtn}>Cerrar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal Twins ── */}
+        {showTwinsModal && (
+          <div onClick={() => setShowTwinsModal(false)} style={overlayStyle}>
+            <div onClick={e => e.stopPropagation()} style={modalStyle}>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h2 style={{ margin: 0, fontSize: 20 }}>🔗 Digital Twins ({filteredTwinsModal.length}{twinModalText ? ` / ${twins.length}` : ""})</h2>
+                <button onClick={() => setShowTwinsModal(false)} style={closeBtnStyle}>✕</button>
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <input
+                  placeholder="Buscar por nombre o dispositivo..."
+                  value={twinModalText}
+                  onChange={e => setTwinModalText(e.target.value)}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                {twinModalText && (
+                  <button onClick={() => setTwinModalText("")} style={clearBtnStyle}>✕ Limpiar</button>
+                )}
+              </div>
+
+              <div style={{ overflowY: "auto", flex: 1, borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                  <thead>
+                    <tr>
+                      {["Nombre","Dispositivo","Última actualización"].map(h => (
+                        <th key={h} style={thStyle}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTwinsModal.length === 0 ? (
+                      <tr><td colSpan={3} style={{ padding: 32, textAlign: "center", color: "var(--text-secondary)" }}>Sin resultados</td></tr>
+                    ) : filteredTwinsModal.map((t, i) => (
+                      <tr key={t.id} style={{ background: i % 2 === 0 ? "var(--bg-card)" : "var(--bg-hover)" }}>
+                        <td style={tdStyle}><strong>{t.name || `Twin ${t.id}`}</strong></td>
+                        <td style={tdStyle}>
+                          {t.device?.code
+                            ? <span style={{ color: "var(--color-primary)", fontWeight: 600 }}>{t.device.code}</span>
+                            : "-"}
+                        </td>
+                        <td style={tdStyle}>{t.lastUpdate ? new Date(t.lastUpdate).toLocaleString() : "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <button onClick={() => setShowTwinsModal(false)} style={closeFooterBtn}>Cerrar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
 
       <footer className="app-footer">
@@ -428,6 +596,78 @@ export default App;
 
 // Estilos de la tabla del modal — definidos fuera del componente
 // para no recrearlos en cada render
+const overlayStyle = {
+  position: "fixed", top: 0, left: 0,
+  width: "100vw", height: "100vh",
+  background: "rgba(0,0,0,0.45)",
+  zIndex: 1000,
+  display: "flex", alignItems: "flex-start", justifyContent: "center",
+  paddingTop: "4vh",
+};
+
+const modalStyle = {
+  background: "var(--bg-card)",
+  borderRadius: 12,
+  boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+  padding: 28,
+  width: "90%",
+  maxWidth: 860,
+  maxHeight: "88vh",
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+  color: "var(--text-primary)",
+};
+
+const closeBtnStyle = {
+  background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#666"
+};
+
+const closeFooterBtn = {
+  padding: "8px 24px", borderRadius: 8,
+  background: "var(--bg-card)", border: "none",
+  fontWeight: 600, cursor: "pointer", fontSize: 14, color: "var(--text-primary)"
+};
+
+const inputStyle = {
+  flex: 1, minWidth: 180,
+  padding: "8px 12px", borderRadius: 8,
+  border: "1.5px solid var(--border-color)",
+  fontSize: 14, background: "var(--bg-main)",
+  color: "var(--text-primary)", fontFamily: "inherit",
+};
+
+const selectStyle = {
+  padding: "8px 12px", borderRadius: 8,
+  border: "1.5px solid var(--border-color)",
+  fontSize: 14, background: "var(--bg-main)",
+  color: "var(--text-primary)", cursor: "pointer",
+};
+
+const clearBtnStyle = {
+  padding: "8px 12px", borderRadius: 8,
+  background: "transparent",
+  border: "1px solid var(--border-color)",
+  color: "var(--text-muted)", fontSize: 13, cursor: "pointer",
+};
+
+const nsBadge = {
+  display: "inline-block", padding: "2px 8px",
+  background: "rgba(99,102,241,0.15)", color: "#818cf8",
+  borderRadius: 999, fontSize: 12, fontWeight: 500,
+};
+
+const tagBadge = {
+  display: "inline-block", marginRight: 4, padding: "2px 7px",
+  background: "rgba(16,185,129,0.12)", color: "#34d399",
+  borderRadius: 999, fontSize: 12, fontWeight: 500,
+};
+
+const statusDot = {
+  display: "inline-block", padding: "2px 8px",
+  borderRadius: 999, fontSize: 12, fontWeight: 600, color: "#fff",
+};
+
 const thStyle = {
   padding: "10px 14px",
   textAlign: "left",
