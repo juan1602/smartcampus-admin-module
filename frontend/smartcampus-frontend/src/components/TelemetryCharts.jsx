@@ -128,8 +128,8 @@ export default function TelemetryCharts({ devices }) {
   };
 
   const tempChart = buildDatasets("temperature");
-  const batChart  = buildDatasets("baterry_level");
-  const humChart  = buildDatasets("humedad");
+  const batChart  = buildDatasets("battery_level");
+  const humChart  = buildDatasets("humidity");
 
   // ── Promedio general ────────────────────────────────────────────────────────
   const avg = (propKey) => {
@@ -280,8 +280,8 @@ onMouseLeave={e => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: "1.5rem" }}>
         {[
           { label: "Temperatura promedio", prop: "temperature",   unit: "°C", color: "#D85A30" },
-          { label: "Batería promedio",      prop: "baterry_level", unit: "%",  color: "#1D9E75" },
-          { label: "Humedad promedio",      prop: "humedad",       unit: "%",  color: "#378ADD" }
+          { label: "Batería promedio",      prop: "battery_level", unit: "%",  color: "#1D9E75" },
+          { label: "Humedad promedio",      prop: "humidity",       unit: "%",  color: "#378ADD" }
         ].map(({ label, prop, unit, color }) => {
           const value = avg(prop);
           return (
