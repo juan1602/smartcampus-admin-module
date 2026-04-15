@@ -50,6 +50,11 @@ export default function DataCard({ title, count, data, type, onOpen, onDeviceCli
               {type === "twin" && (
                 <>
                   <strong>{item.name || `Twin ${item.id}`}</strong>
+                  {item.device?.code && (
+                    <span style={{ fontSize: "0.8rem", color: "var(--color-primary)", marginLeft: "0.5rem" }}>
+                     {item.device.code}
+                    </span>
+                    )}
 
                   <button
                     className="info-button"
