@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createDevice, updateDevice, deleteDevice, assignProperties, updatePropertyValue } from "../services/deviceService";
+import { createProperty } from "../services/propertyService";
 import "./DeviceManager.css";
 import yaml from "js-yaml";
 
@@ -13,7 +14,8 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     name: "",
     type: "SENSOR",
     location: "",
-    selectedProperties: []
+    selectedProperties: [],
+    customProperties: []
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -96,7 +98,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
   // ── Formulario ──────────────────────────────────────────────────────────────
 
   const resetForm = () => {
-    setFormData({ code: "", name: "", type: "SENSOR", location: "", selectedProperties: [] });
+    setFormData({ code: "", name: "", type: "SENSOR", location: "", selectedProperties: [], customProperties: [] });
     setEditingId(null);
     setShowForm(false);
     setMessage("");
@@ -108,7 +110,8 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       name: device.name || "",
       type: device.type || "SENSOR",
       location: device.location || "",
-      selectedProperties: device.properties?.length > 0 ? device.properties.map(p => p.id) : []
+      selectedProperties: device.properties?.length > 0 ? device.properties.map(p => p.id) : [],
+      customProperties: []
     });
     setEditingId(device.id);
     setShowForm(true);
@@ -123,6 +126,28 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     }));
   };
 
+  const addCustomProperty = () => {
+    setFormData(prev => ({
+      ...prev,
+      customProperties: [...prev.customProperties, { name: "", unit: "", description: "", writable: false }]
+    }));
+  };
+
+  const removeCustomProperty = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      customProperties: prev.customProperties.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateCustomProperty = (index, field, value) => {
+    setFormData(prev => {
+      const updated = [...prev.customProperties];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, customProperties: updated };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.code.trim()) {
@@ -131,6 +156,15 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     }
     setLoading(true);
     try {
+      // Crear propiedades personalizadas primero y recoger sus IDs
+      const customIds = [];
+      for (const cp of formData.customProperties) {
+        if (!cp.name.trim()) continue;
+        const res = await createProperty({ name: cp.name.trim(), unit: cp.unit, description: cp.description, writable: cp.writable });
+        customIds.push(res.data.id);
+      }
+      const allPropertyIds = [...formData.selectedProperties, ...customIds];
+
       const payload = {
         code: formData.code,
         name: formData.name,
@@ -140,15 +174,15 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       };
       if (editingId) {
         await updateDevice(editingId, payload);
-        if (formData.selectedProperties.length > 0) {
-          await assignProperties(editingId, formData.selectedProperties);
+        if (allPropertyIds.length > 0) {
+          await assignProperties(editingId, allPropertyIds);
         }
         setMessage("Dispositivo actualizado");
       } else {
         const response = await createDevice(payload);
         const newDeviceId = response.data.id;
-        if (formData.selectedProperties.length > 0) {
-          await assignProperties(newDeviceId, formData.selectedProperties);
+        if (allPropertyIds.length > 0) {
+          await assignProperties(newDeviceId, allPropertyIds);
         }
         setMessage("Dispositivo creado");
       }
@@ -407,6 +441,58 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
               </div>
             </div>
           )}
+
+          {/* Propiedades personalizadas */}
+          <div className="form-section">
+            <div className="custom-props-header">
+              <h3>Propiedades personalizadas</h3>
+              <button type="button" className="btn-add-custom-prop" onClick={addCustomProperty}>
+                + Agregar propiedad
+              </button>
+            </div>
+
+            {formData.customProperties.length === 0 && (
+              <p className="custom-props-empty">
+                Agrega propiedades que no estén en la lista global.
+              </p>
+            )}
+
+            {formData.customProperties.map((cp, index) => (
+              <div key={index} className="custom-prop-row">
+                <input
+                  type="text"
+                  placeholder="Nombre *"
+                  value={cp.name}
+                  onChange={(e) => updateCustomProperty(index, "name", e.target.value)}
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Unidad (ej: °C)"
+                  value={cp.unit}
+                  onChange={(e) => updateCustomProperty(index, "unit", e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Descripción"
+                  value={cp.description}
+                  onChange={(e) => updateCustomProperty(index, "description", e.target.value)}
+                />
+                <select
+                  value={cp.writable ? "yes" : "no"}
+                  onChange={(e) => updateCustomProperty(index, "writable", e.target.value === "yes")}
+                >
+                  <option value="no">Solo lectura</option>
+                  <option value="yes">Editable</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn-remove-custom-prop"
+                  onClick={() => removeCustomProperty(index)}
+                >✕</button>
+              </div>
+            ))}
+          </div>
 
           <button type="submit" disabled={loading} className="btn-submit">
             {loading ? "Guardando..." : editingId ? "Actualizar Dispositivo" : "Crear Dispositivo"}
