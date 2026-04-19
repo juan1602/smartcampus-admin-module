@@ -283,40 +283,39 @@ useEffect(() => {
   // ── Definición de tabs ─────────────────────────────────────────────────────
   const tabs = [
     {
-      label: `KPIs`,
-      content: <KpiDashboard liveTwinIds={liveTwinIds} />
-    },
-    {
       label: `Dashboard`,
       content: (
-        <div className="dashboard-grid">
-          <DataCard
-            title="Dispositivos"
-            count={devices.length}
-            data={devices.slice(0, 5)}
-            type="device"
-            onDeviceClick={(device) => {
-              setActiveTab(2);
-              setHighlightedDeviceId(device.id);
-            }}
-            onOpen={() => setShowDevicesModal(true)}
-          />
-          <DataCard
-            title="Digital Twins"
-            count={twins.length}
-            data={twins.slice(0, 5)}
-            type="twin"
-            onOpen={() => setShowTwinsModal(true)}
-            liveTwinIds={liveTwinIds}
-          />
-          <DataCard
-            title="Historial de Telemetría"
-            count={telemetry.length}
-            data={telemetry.slice(0, 5)}
-            type="telemetry"
-            onOpen={handleOpenHistorial}
-          />
-        </div>
+        <>
+          <KpiDashboard liveTwinIds={liveTwinIds} />
+          <div className="dashboard-grid">
+            <DataCard
+              title="Dispositivos"
+              count={devices.length}
+              data={devices.slice(0, 5)}
+              type="device"
+              onDeviceClick={(device) => {
+                setActiveTab(1);
+                setHighlightedDeviceId(device.id);
+              }}
+              onOpen={() => setShowDevicesModal(true)}
+            />
+            <DataCard
+              title="Digital Twins"
+              count={twins.length}
+              data={twins.slice(0, 5)}
+              type="twin"
+              onOpen={() => setShowTwinsModal(true)}
+              liveTwinIds={liveTwinIds}
+            />
+            <DataCard
+              title="Historial de Telemetría"
+              count={telemetry.length}
+              data={telemetry.slice(0, 5)}
+              type="telemetry"
+              onOpen={handleOpenHistorial}
+            />
+          </div>
+        </>
       )
     },
     {
