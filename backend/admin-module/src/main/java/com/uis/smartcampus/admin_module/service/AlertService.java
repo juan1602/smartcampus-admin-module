@@ -3,93 +3,66 @@ package com.uis.smartcampus.admin_module.service;
 import com.uis.smartcampus.admin_module.model.AlertRule;
 import com.uis.smartcampus.admin_module.repository.AlertRuleRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class AlertService {
 
-    private final JavaMailSender mailSender;
     private final AlertRuleRepository alertRuleRepository;
+    private final SimpMessagingTemplate wsTemplate;
 
-    @Value("${alert.mail.recipient}")
-    private String recipient;
+    // Cooldown: evitar notificaciones repetidas (clave: deviceCode + ruleId)
+    private final Map<String, LocalDateTime> lastNotified = new HashMap<>();
+    private static final int COOLDOWN_MINUTES = 5;
 
-    @Value("${alert.cooldown.minutes}")
-    private int cooldownMinutes;
-
-    @Value("${spring.mail.username}")
-    private String sender;
-
-    // Cooldown: evita spam — una alerta por clave cada N minutos
-    private final Map<String, LocalDateTime> lastAlertTime = new ConcurrentHashMap<>();
-
-    /**
-     * Revisa los datos de telemetría contra las reglas activas en BD
-     * y envía correo si alguna se cumple.
-     */
     public void checkAndAlert(String deviceCode, Map<String, Object> data) {
-        List<AlertRule> activeRules = alertRuleRepository.findByActiveTrue();
+        List<AlertRule> rules = alertRuleRepository.findByActiveTrue();
 
-        for (AlertRule rule : activeRules) {
-            Object raw = data.get(rule.getProperty().toLowerCase());
-            if (raw == null) continue;
+        for (AlertRule rule : rules) {
+            String property = rule.getProperty().toLowerCase();
+            if (!data.containsKey(property)) continue;
 
             try {
-                double value = Double.parseDouble(raw.toString());
+                double value = Double.parseDouble(data.get(property).toString());
                 boolean triggered = switch (rule.getOperator()) {
                     case "GREATER_THAN" -> value > rule.getThreshold();
                     case "LESS_THAN"    -> value < rule.getThreshold();
                     default             -> false;
                 };
 
-                if (triggered) {
-                    String cooldownKey = deviceCode + "_" + rule.getId();
-                    String label = rule.getLabel() != null ? rule.getLabel() : rule.getProperty();
-                    String subject = "[SmartCampus] ALERTA - " + label + " en " + deviceCode;
-                    String body = String.format(
-                        "El dispositivo '%s' activó la regla: %s%n" +
-                        "Valor reportado: %.2f | Umbral: %s %.2f%n%n" +
-                        "Fecha y hora: %s%n%n-- SmartCampus UIS - Sistema de Alertas --",
-                        deviceCode, label, value,
-                        rule.getOperator().equals("GREATER_THAN") ? ">" : "<",
-                        rule.getThreshold(), LocalDateTime.now()
-                    );
-                    sendAlertIfCooldownPassed(cooldownKey, subject, body);
+                if (!triggered) continue;
+
+                String cooldownKey = deviceCode + "_" + rule.getId();
+                LocalDateTime lastTime = lastNotified.get(cooldownKey);
+
+                if (lastTime != null && lastTime.plusMinutes(COOLDOWN_MINUTES).isAfter(LocalDateTime.now())) {
+                    continue; // aún en cooldown
                 }
-            } catch (NumberFormatException ignored) {}
-        }
-    }
 
-    private void sendAlertIfCooldownPassed(String cooldownKey, String subject, String body) {
-        LocalDateTime last = lastAlertTime.get(cooldownKey);
-        if (last != null && last.plusMinutes(cooldownMinutes).isAfter(LocalDateTime.now())) {
-            System.out.println("⏳ Alerta suprimida por cooldown: " + cooldownKey);
-            return;
-        }
-        lastAlertTime.put(cooldownKey, LocalDateTime.now());
-        sendEmail(subject, body);
-    }
+                lastNotified.put(cooldownKey, LocalDateTime.now());
 
-    private void sendEmail(String subject, String body) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(sender);
-            message.setTo(recipient);
-            message.setSubject(subject);
-            message.setText(body);
-            mailSender.send(message);
-            System.out.println("✅ Correo de alerta enviado: " + subject);
-        } catch (Exception e) {
-            System.err.println("❌ Error al enviar correo de alerta: " + e.getMessage());
+                // Notificar al frontend via WebSocket
+                Map<String, Object> alert = new HashMap<>();
+                alert.put("deviceCode", deviceCode);
+                alert.put("property",   rule.getProperty());
+                alert.put("value",      value);
+                alert.put("threshold",  rule.getThreshold());
+                alert.put("operator",   rule.getOperator());
+                alert.put("label",      rule.getLabel());
+
+                wsTemplate.convertAndSend("/topic/alerts", alert);
+                System.out.println("⚠️ Alerta enviada para " + deviceCode + " — " + rule.getLabel());
+
+            } catch (NumberFormatException e) {
+                System.err.println("❌ No se pudo parsear valor de " + property + " para alerta");
+            }
         }
     }
 }

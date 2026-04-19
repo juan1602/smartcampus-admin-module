@@ -40,10 +40,13 @@
 - Registrar y gestionar dispositivos IoT del campus (sensores de temperatura, humedad, batería, entre otros)
 - Mantener un Digital Twin actualizado por cada dispositivo físico
 - Recibir telemetría en tiempo real a través del protocolo MQTT
+- Sincronización bidireccional: aplicar cambios de configuración desde la interfaz hacia el dispositivo físico
 - Enviar alertas automáticas por correo electrónico cuando se superen umbrales configurables
 - Mostrar notificaciones visuales en la interfaz web
 - Permitir la gestión de usuarios con control de acceso por roles
-- Proveer un panel de analítica con exportación de datos en CSV y PDF
+- Proveer un panel de KPIs y analítica con exportación de datos en CSV y PDF
+- Detectar y gestionar dispositivos desconocidos que envíen telemetría sin estar registrados
+- Poner dispositivos en modo mantenimiento sin eliminarlos del sistema
 
 ---
 
@@ -52,8 +55,8 @@
 ```
 ┌─────────────────┐        MQTT         ┌──────────────────────┐
 │  Dispositivos   │ ──────────────────► │                      │
-│  IoT (RPi, etc) │                     │   Backend             │
-└─────────────────┘                     │   Spring Boot         │
+│  IoT (RPi, etc) │ ◄────────────────── │   Backend             │
+└─────────────────┘   Config via MQTT   │   Spring Boot         │
                                         │   (Railway)           │
 ┌─────────────────┐        MQTT         │                      │
 │   Node-RED      │ ◄────────────────── │   - REST API          │
@@ -72,15 +75,25 @@
                                         └──────────────────────┘
 ```
 
-### Flujo de telemetría
+### Flujo de telemetría (dispositivo → plataforma)
 
 1. El dispositivo IoT publica datos en el topic MQTT `smartcampus/telemetry`
-2. El backend recibe el mensaje, valida las propiedades y guarda el historial
+2. El backend recibe el mensaje y valida si el dispositivo está registrado
+   - Si **no está registrado**: guarda un `UnknownDeviceEvent` y notifica al frontend via WebSocket
+   - Si **está registrado**: valida propiedades, guarda historial y actualiza estado
 3. El backend publica un ACK en `smartcampus/ack` hacia Node-RED
 4. Node-RED confirma el procesamiento publicando en `smartcampus/confirm`
 5. El backend actualiza el Digital Twin con los datos confirmados
 6. El backend notifica al frontend via WebSocket (`/topic/twins`)
 7. El frontend actualiza la pantalla en tiempo real sin recargar
+
+### Flujo de configuración (plataforma → dispositivo)
+
+1. El admin modifica un valor editable desde el modal de información del dispositivo
+2. El backend actualiza el Digital Twin en la BD y guarda un `TelemetryRecord`
+3. El backend publica el cambio en `smartcampus/ack` con el nuevo valor
+4. Node-RED reenvía a `smartcampus/confirm`
+5. El dispositivo físico (suscrito a `smartcampus/confirm`) recibe y aplica el cambio
 
 ---
 
@@ -113,14 +126,15 @@
 | jsPDF | latest | Generación de reportes PDF |
 | jspdf-autotable | latest | Tablas en PDF |
 | Chart.js | latest | Gráficas de telemetría |
+| js-yaml | latest | Importación de dispositivos desde YAML |
 
 ### Infraestructura
 | Servicio | Uso |
 |---|---|
-| Railway | Despliegue del backend Spring Boot |
+| Railway | Despliegue del backend Spring Boot + base de datos MySQL |
 | Vercel | Despliegue del frontend React |
 | HiveMQ Cloud | Broker MQTT (SSL, puerto 8883) |
-| MySQL (Railway) | Base de datos en producción |
+| Node-RED | Relay MQTT: recibe en `smartcampus/ack` y publica en `smartcampus/confirm` |
 | Gmail SMTP | Envío de correos de alerta |
 
 ---
@@ -145,7 +159,9 @@ Proyecto-grado/
 │       │   │   ├── DeviceController.java
 │       │   │   ├── DigitalTwinController.java
 │       │   │   ├── PropertyController.java
-│       │   │   └── TelemetryController.java
+│       │   │   ├── TelemetryController.java
+│       │   │   ├── UnknownDeviceController.java
+│       │   │   └── UserController.java
 │       │   ├── model/
 │       │   │   ├── AlertRule.java
 │       │   │   ├── AppUser.java
@@ -154,14 +170,17 @@ Proyecto-grado/
 │       │   │   ├── Property.java
 │       │   │   ├── Role.java
 │       │   │   ├── TelemetryRecord.java
-│       │   │   └── TwinUpdateMessage.java
+│       │   │   ├── TwinUpdateMessage.java
+│       │   │   ├── UnknownDeviceEvent.java
+│       │   │   └── UserResponse.java
 │       │   ├── repository/
 │       │   │   ├── AlertRuleRepository.java
 │       │   │   ├── AppUserRepository.java
 │       │   │   ├── DeviceRepository.java
 │       │   │   ├── DigitalTwinRepository.java
 │       │   │   ├── PropertyRepository.java
-│       │   │   └── TelemetryRecordRepository.java
+│       │   │   ├── TelemetryRecordRepository.java
+│       │   │   └── UnknownDeviceEventRepository.java
 │       │   ├── security/
 │       │   │   ├── JwtFilter.java
 │       │   │   └── JwtUtil.java
@@ -187,17 +206,23 @@ Proyecto-grado/
             │   ├── AnalyticsPanel.jsx
             │   ├── DataCard.jsx
             │   ├── DeviceManager.jsx
+            │   ├── KpiDashboard.jsx
             │   ├── LoginPage.jsx
             │   ├── PropertyManager.jsx
             │   ├── Tabs.jsx
             │   ├── TelemetryCharts.jsx
-            │   └── ToastAlert.jsx
+            │   ├── ToastAlert.jsx
+            │   ├── UnknownDevicesAlert.jsx
+            │   └── UserManager.jsx
             └── services/
                 ├── alertRuleService.js
                 ├── deviceService.js
+                ├── kpiService.js
                 ├── propertyService.js
                 ├── telemetryService.js
                 ├── twinService.js
+                ├── unknownDeviceService.js
+                ├── userService.js
                 └── useTwinWebSocket.js
 ```
 
@@ -216,25 +241,26 @@ Representa un dispositivo IoT registrado en el sistema.
 | code | String | Código único del dispositivo (ej: RPI-001) |
 | name | String | Nombre descriptivo |
 | type | String | Tipo: SENSOR, ACTUATOR, CAMERA, CONTROLLER |
-| status | String | Estado: ONLINE, OFFLINE, WARNING, LOW_BATTERY |
+| status | String | Estado: ONLINE, OFFLINE, ERROR, WARNING, LOW_BATTERY, MAINTENANCE |
 | location | String | Ubicación física |
 | namespace | String | Agrupación lógica (ej: edificio-a/piso-2) |
 | tags | String | Etiquetas separadas por coma |
+| configJson | String | JSON con configuración flexible del dispositivo |
 | lastSeen | LocalDateTime | Última vez que envió telemetría |
 | properties | Set\<Property\> | Propiedades asociadas |
 
 #### DigitalTwin
-Gemelo digital de un dispositivo. Mantiene el estado actual del dispositivo.
+Gemelo digital de un dispositivo. Mantiene el estado actual del dispositivo en tiempo real.
 
 | Campo | Tipo | Descripción |
 |---|---|---|
 | id | Long | Identificador único |
-| device | Device | Dispositivo físico asociado |
+| device | Device | Dispositivo físico asociado (relación 1-1) |
 | telemetryJson | String | JSON con los últimos valores de cada propiedad |
 | lastUpdate | LocalDateTime | Última actualización del twin |
 
 #### Property
-Define una propiedad medible (ej: temperatura, humedad).
+Define una propiedad medible o configurable (ej: temperatura, humedad, led_status).
 
 | Campo | Tipo | Descripción |
 |---|---|---|
@@ -242,10 +268,10 @@ Define una propiedad medible (ej: temperatura, humedad).
 | name | String | Nombre de la propiedad (ej: temperature) |
 | unit | String | Unidad de medida (ej: °C, %) |
 | description | String | Descripción |
-| writable | Boolean | Si puede ser modificada externamente |
+| writable | Boolean | Si puede ser modificada desde la interfaz (sync bidireccional) |
 
 #### TelemetryRecord
-Registro histórico de cada dato enviado por un dispositivo.
+Registro histórico de cada dato enviado por un dispositivo o modificado desde la interfaz.
 
 | Campo | Tipo | Descripción |
 |---|---|---|
@@ -275,6 +301,17 @@ Usuario del sistema con rol asignado.
 | username | String | Nombre de usuario único |
 | password | String | Contraseña encriptada con BCrypt |
 | role | Role | ADMIN o VIEWER |
+
+#### UnknownDeviceEvent
+Registro de telemetría recibida de dispositivos no registrados en el sistema.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | Long | Identificador único |
+| deviceCode | String | Código del dispositivo desconocido |
+| telemetryJson | String | Payload recibido |
+| receivedAt | LocalDateTime | Fecha y hora de recepción |
+| ignored | Boolean | Si el admin decidió ignorarlo |
 
 ---
 
@@ -307,12 +344,34 @@ Usuario del sistema con rol asignado.
 | Método | Endpoint | Descripción | Acceso |
 |---|---|---|---|
 | GET | `/devices` | Listar todos los dispositivos | ADMIN, VIEWER |
+| GET | `/devices/stats` | Métricas agregadas de la flota | ADMIN, VIEWER |
 | GET | `/devices/{id}` | Obtener dispositivo por ID | ADMIN, VIEWER |
 | POST | `/devices` | Crear dispositivo | ADMIN |
 | PUT | `/devices/{id}` | Actualizar dispositivo | ADMIN |
 | DELETE | `/devices/{id}` | Eliminar dispositivo | ADMIN |
-| POST | `/devices/{id}/components` | Asignar propiedades | ADMIN |
-| POST | `/devices/{id}/property-value` | Actualizar valor de propiedad | ADMIN |
+| POST | `/devices/{id}/components` | Asignar propiedades al dispositivo | ADMIN |
+| POST | `/devices/{id}/property-value` | Actualizar valor de propiedad editable (sincroniza con dispositivo físico vía MQTT) | ADMIN |
+| POST | `/devices/{id}/maintenance` | Alternar modo mantenimiento (MAINTENANCE ↔ OFFLINE) | ADMIN |
+
+**Respuesta de `/devices/stats`:**
+```json
+{
+  "totalDevices": 3,
+  "onlineCount": 2,
+  "offlineCount": 1,
+  "errorCount": 0,
+  "totalTwins": 3,
+  "totalProperties": 5,
+  "lastSeenDevice": {
+    "name": "RPi Lab",
+    "code": "RPI-001",
+    "lastSeen": "2026-04-19T15:58:33",
+    "status": "ONLINE"
+  },
+  "byType": { "SENSOR": 2, "ACTUATOR": 1 },
+  "byNamespace": { "laboratorio": 2, "pasillo": 1 }
+}
+```
 
 #### Propiedades
 | Método | Endpoint | Descripción | Acceso |
@@ -327,9 +386,8 @@ Usuario del sistema con rol asignado.
 | Método | Endpoint | Descripción | Acceso |
 |---|---|---|---|
 | GET | `/telemetry` | Listar todo el historial | ADMIN, VIEWER |
-| GET | `/telemetry/device/{deviceId}` | Historial por dispositivo | ADMIN, VIEWER |
+| GET | `/telemetry/device/{deviceId}` | Historial por ID de dispositivo | ADMIN, VIEWER |
 | GET | `/telemetry/history/{code}` | Historial por código de dispositivo | ADMIN, VIEWER |
-| POST | `/telemetry/{code}` | Enviar telemetría manual | ADMIN |
 
 #### Digital Twins
 | Método | Endpoint | Descripción | Acceso |
@@ -344,28 +402,54 @@ Usuario del sistema con rol asignado.
 | PUT | `/alert-rules/{id}` | Actualizar regla | ADMIN |
 | DELETE | `/alert-rules/{id}` | Eliminar regla | ADMIN |
 
+#### Usuarios
+| Método | Endpoint | Descripción | Acceso |
+|---|---|---|---|
+| GET | `/users` | Listar todos los usuarios (sin contraseña) | ADMIN |
+| POST | `/users` | Crear usuario | ADMIN |
+| PUT | `/users/{id}` | Actualizar usuario (contraseña opcional) | ADMIN |
+| DELETE | `/users/{id}` | Eliminar usuario (no puede eliminarse a sí mismo) | ADMIN |
+
+#### Dispositivos Desconocidos
+| Método | Endpoint | Descripción | Acceso |
+|---|---|---|---|
+| GET | `/unknown-devices` | Listar eventos pendientes | ADMIN |
+| POST | `/unknown-devices/{id}/ignore` | Marcar evento como ignorado | ADMIN |
+
 ---
 
 ### 5.3 Servicios
 
 #### TelemetryService
 Procesa la telemetría recibida por MQTT:
-1. Valida que las propiedades existan para el dispositivo
-2. Actualiza el estado del dispositivo (ONLINE, WARNING, LOW_BATTERY, OFFLINE)
-3. Verifica umbrales y dispara alertas via `AlertService`
-4. Guarda el registro histórico en `TelemetryRecord`
-5. Publica ACK via MQTT hacia Node-RED
-6. Cuando recibe confirmación, actualiza el Digital Twin y notifica al frontend via WebSocket
+1. Si el dispositivo **no está registrado**: guarda `UnknownDeviceEvent` y notifica al frontend via WebSocket `/topic/unknown-devices`. Solo guarda un evento si no hay uno pendiente para ese código.
+2. Si el dispositivo **está en MAINTENANCE**: actualiza `lastSeen` pero no modifica su estado
+3. Filtra propiedades recibidas contra las propiedades válidas del dispositivo
+4. Actualiza el estado según nivel de batería: ONLINE, WARNING (<5%), LOW_BATTERY (<20%), OFFLINE (0%)
+5. Verifica umbrales y dispara alertas via `AlertService`
+6. Publica ACK via MQTT hacia Node-RED
+7. Al recibir confirmación en `smartcampus/confirm`, actualiza el Digital Twin y notifica al frontend via WebSocket `/topic/twins`
+
+#### DeviceService
+Gestiona el ciclo de vida de los dispositivos:
+- Crea automáticamente un Digital Twin al registrar un nuevo dispositivo
+- `updatePropertyValue`: valida que la propiedad sea editable, actualiza el twin en BD, guarda `TelemetryRecord` para trazabilidad y publica el cambio en `smartcampus/ack` para propagarlo al dispositivo físico
+- `toggleMaintenance`: alterna el estado entre `MAINTENANCE` y `OFFLINE`
+- `getStats`: retorna métricas agregadas de la flota (totales, estados, último visto, distribución por tipo y namespace)
 
 #### AlertService
-Gestiona el envío de alertas:
-- Lee las reglas activas desde la base de datos en cada evaluación
+Gestiona el envío de alertas por correo:
+- Lee las reglas activas desde la BD en cada evaluación
 - Evalúa operadores `GREATER_THAN` y `LESS_THAN`
-- Implementa un cooldown configurable (por defecto 30 minutos) para evitar spam de correos
+- Cooldown configurable (por defecto 30 minutos) por dispositivo por regla para evitar spam
 - Envía correo via Gmail SMTP cuando se cumple una regla
 
 #### DeviceStatusScheduler
-Tarea programada que marca como OFFLINE los dispositivos que no han enviado telemetría en un tiempo determinado.
+Tarea programada (cada 30 segundos) que marca como OFFLINE los dispositivos cuyo `lastSeen` supere los 10 minutos. **Omite dispositivos en estado MAINTENANCE.**
+
+#### MqttPublisherService
+Publica mensajes en el broker MQTT:
+- `publishAck(deviceCode, data)`: publica en `smartcampus/ack` con QoS 1. Usado tanto para ACKs de telemetría como para propagar cambios de configuración desde la interfaz.
 
 ---
 
@@ -380,12 +464,13 @@ El sistema usa **JWT (JSON Web Tokens)** con Spring Security en modo stateless.
 4. El frontend almacena el token en `localStorage`
 5. Cada petición incluye el header: `Authorization: Bearer <token>`
 6. `JwtFilter` intercepta todas las peticiones y valida el token
+7. Si el token es inválido o expiró, el interceptor de Axios redirige al login automáticamente
 
 #### Roles
 | Rol | Permisos |
 |---|---|
-| ADMIN | Acceso completo: leer, crear, editar, eliminar, gestionar alertas |
-| VIEWER | Solo lectura: ver dispositivos, twins, telemetría y gráficas |
+| ADMIN | Acceso completo: leer, crear, editar, eliminar, gestionar alertas, gestionar usuarios, ver y gestionar dispositivos desconocidos, modo mantenimiento |
+| VIEWER | Solo lectura: ver dispositivos, twins, telemetría, gráficas, KPIs y analítica |
 
 ---
 
@@ -397,9 +482,9 @@ El sistema usa **JWT (JSON Web Tokens)** con Spring Security en modo stateless.
 
 | Topic | Dirección | Descripción |
 |---|---|---|
-| `smartcampus/telemetry` | Dispositivo → Backend | Datos de telemetría |
-| `smartcampus/ack` | Backend → Node-RED | Confirmación de recepción |
-| `smartcampus/confirm` | Node-RED → Backend | Confirmación de procesamiento |
+| `smartcampus/telemetry` | Dispositivo → Backend | Datos de telemetría y detección de dispositivos desconocidos |
+| `smartcampus/ack` | Backend → Node-RED | ACK de telemetría + cambios de configuración desde la UI |
+| `smartcampus/confirm` | Node-RED → Backend + Dispositivo | Confirmación de procesamiento y entrega de configuración al dispositivo |
 
 **Formato del payload de telemetría:**
 ```json
@@ -412,27 +497,33 @@ El sistema usa **JWT (JSON Web Tokens)** con Spring Security en modo stateless.
 }
 ```
 
+**Formato del payload de ACK (telemetría y configuración):**
+```json
+{
+  "deviceCode": "RPI-001",
+  "data": {
+    "temperature": 45.2,
+    "battery_level": 78
+  }
+}
+```
+
 ---
 
 ### 5.6 WebSocket
 
 El sistema usa **STOMP sobre SockJS** para comunicación en tiempo real.
 
-**Endpoint de conexión:** `/api/ws`  
-**Topic de suscripción:** `/topic/twins`
+**Endpoint de conexión:** `/api/ws`
 
-Cada vez que el Digital Twin de un dispositivo se actualiza, el backend publica un mensaje con la siguiente estructura:
+| Topic | Evento | Payload |
+|---|---|---|
+| `/topic/twins` | Actualización de Digital Twin | `{ deviceCode, twinId, telemetryJson, lastUpdate }` |
+| `/topic/unknown-devices` | Telemetría de dispositivo no registrado detectada | `{ deviceCode, telemetryJson }` |
 
-```json
-{
-  "deviceCode": "RPI-001",
-  "twinId": 3,
-  "telemetryJson": "{\"temperature\":45.2,\"battery_level\":78}",
-  "lastUpdate": "2026-04-19T18:06:58"
-}
-```
-
-El frontend actualiza el estado del twin en tiempo real y muestra el badge **"En vivo"** durante 4 segundos.
+El frontend se suscribe a ambos topics al conectarse:
+- `/topic/twins` → actualiza el twin en pantalla y muestra badge "En vivo" durante 4 segundos
+- `/topic/unknown-devices` → muestra toast de advertencia y recarga el banner de dispositivos desconocidos en la pestaña Dispositivos
 
 ---
 
@@ -441,18 +532,20 @@ El frontend actualiza el estado del twin en tiempo real y muestra el badge **"En
 #### Alertas por correo
 - Remitente: `smartcampus.uis@gmail.com`
 - Destinatario: configurable en `application.properties`
-- Cooldown: 30 minutos por dispositivo por regla (evita spam)
+- Cooldown: 30 minutos por dispositivo por regla
 
-#### Reglas por defecto (creadas al iniciar)
+#### Reglas creadas por defecto al iniciar
 | Propiedad | Operador | Umbral | Etiqueta |
 |---|---|---|---|
 | temperature | GREATER_THAN | 80.0 | Temperatura crítica |
 | battery_level | LESS_THAN | 10.0 | Batería baja |
 
-#### Notificaciones en la app
-El frontend detecta umbrales en los datos más recientes de cada dispositivo y muestra toasts:
-- **Rojo** — Temperatura crítica (> 80°C)
-- **Naranja** — Batería baja (< 10%)
+#### Notificaciones toast en el frontend
+| Tipo | Color | Condición |
+|---|---|---|
+| Temperatura crítica | Rojo | temperature > 80°C |
+| Batería baja | Naranja | battery_level < 10% |
+| Dispositivo desconocido | Naranja | Llega telemetría de código no registrado |
 
 Los toasts se auto-cierran a los 7 segundos y no se repiten mientras el valor siga en alerta.
 
@@ -465,69 +558,99 @@ Los toasts se auto-cierran a los 7 segundos y no se repiten mientras el valor si
 | Componente | Descripción |
 |---|---|
 | `LoginPage` | Pantalla de inicio de sesión con manejo de errores |
-| `DataCard` | Tarjeta del dashboard para dispositivos, twins y telemetría |
-| `DeviceManager` | Gestión completa de dispositivos (CRUD, clonación, importación YAML) |
-| `PropertyManager` | Gestión de propiedades de sensores |
-| `TelemetryCharts` | Gráficas de temperatura, batería y humedad con Chart.js |
-| `AnalyticsPanel` | Panel de analítica con estadísticas y exportación CSV/PDF |
-| `AlertRulesManager` | Gestión de reglas de alerta (solo ADMIN) |
-| `ToastAlert` | Notificaciones visuales de alertas en tiempo real |
+| `KpiDashboard` | Panel de métricas de la flota: totales, estados, último visto, distribución por tipo y namespace. Auto-refresco cada 30s y reactivo a WebSocket |
+| `DataCard` | Tarjeta del dashboard para dispositivos, twins y telemetría. Muestra badge "En vivo" cuando llega telemetría por WebSocket |
+| `DeviceManager` | Gestión completa de dispositivos: CRUD, clonación, importación YAML, filtros, vista tarjeta/lista, modo mantenimiento, exportación CSV/PDF, alerta de desconocidos |
+| `UnknownDevicesAlert` | Banner dentro de Dispositivos que muestra eventos de dispositivos no registrados con opciones "Crear dispositivo" e "Ignorar" |
+| `PropertyManager` | Gestión de propiedades del catálogo: CRUD con indicador writable/readonly |
+| `TelemetryCharts` | Gráficas de temperatura, batería y humedad con Chart.js. Filtro por dispositivo y cantidad de registros |
+| `AnalyticsPanel` | Estadísticas por dispositivo (mín, máx, promedio, cantidad). Filtros por dispositivo y rango de fechas. Exportación CSV y PDF |
+| `AlertRulesManager` | Gestión de reglas de alerta: CRUD y toggle activo/inactivo. Solo ADMIN |
+| `UserManager` | Gestión de usuarios: CRUD, badge "Tú", protección contra auto-eliminación. Solo ADMIN |
+| `ToastAlert` | Notificaciones visuales en la esquina superior derecha |
 | `Tabs` | Navegación por pestañas del dashboard |
 
 ### 6.2 Servicios API
 
 | Archivo | Descripción |
 |---|---|
-| `api.js` | Instancia de Axios con interceptores de JWT y manejo de 401 |
-| `deviceService.js` | CRUD de dispositivos |
+| `api.js` | Instancia de Axios con interceptor JWT en request y redirección al login en 401 |
+| `deviceService.js` | CRUD de dispositivos, asignación de propiedades, actualización de valores, modo mantenimiento |
 | `propertyService.js` | CRUD de propiedades |
-| `telemetryService.js` | Consulta de historial de telemetría |
+| `telemetryService.js` | Consulta de historial completo y por dispositivo |
 | `twinService.js` | Consulta de Digital Twins |
 | `alertRuleService.js` | CRUD de reglas de alerta |
-| `useTwinWebSocket.js` | Hook React para conexión WebSocket en tiempo real |
+| `userService.js` | CRUD de usuarios |
+| `kpiService.js` | Métricas agregadas de la flota (`GET /devices/stats`) |
+| `unknownDeviceService.js` | Consulta e ignorar dispositivos desconocidos |
+| `useTwinWebSocket.js` | Hook React: conecta via SockJS+STOMP, suscribe a `/topic/twins` y `/topic/unknown-devices` |
 
 ### 6.3 Funcionalidades por Rol
 
 | Funcionalidad | ADMIN | VIEWER |
 |---|---|---|
-| Ver dashboard | ✅ | ✅ |
+| Ver dashboard con KPIs y DataCards | ✅ | ✅ |
 | Ver dispositivos | ✅ | ✅ |
 | Crear / editar / eliminar dispositivos | ✅ | ❌ |
+| Importar dispositivos desde YAML | ✅ | ❌ |
+| Clonar dispositivo | ✅ | ❌ |
+| Poner dispositivo en modo mantenimiento | ✅ | ❌ |
+| Editar valores de propiedades (sync bidireccional) | ✅ | ❌ |
+| Exportar inventario de dispositivos (CSV/PDF) | ✅ | ✅ |
+| Ver y gestionar dispositivos desconocidos | ✅ | ❌ |
 | Ver propiedades | ✅ | ✅ |
 | Crear / editar / eliminar propiedades | ✅ | ❌ |
 | Ver telemetría y gráficas | ✅ | ✅ |
 | Ver Digital Twins en tiempo real | ✅ | ✅ |
-| Panel de analítica y exportación | ✅ | ✅ |
+| Panel de analítica y exportación de telemetría | ✅ | ✅ |
 | Gestionar reglas de alerta | ✅ | ❌ |
-| Ver pestaña Alertas | ✅ | ❌ |
+| Gestionar usuarios | ✅ | ❌ |
 
 ---
 
 ## 7. Funcionalidades Implementadas
 
 ### 1. Gestión de dispositivos IoT
-Registro completo de dispositivos con código, nombre, tipo, ubicación, namespace y etiquetas. Soporta importación masiva desde archivos YAML. Vista en tarjetas o lista con filtros por tipo, estado y namespace.
+Registro completo de dispositivos con código, nombre, tipo, ubicación, namespace y etiquetas. Soporta importación masiva desde archivos YAML (un dispositivo o lista). Vista en tarjetas o lista con filtros por tipo, estado y namespace. Clonación de dispositivos con sus propiedades.
 
 ### 2. Digital Twins
-Cada dispositivo tiene un gemelo digital que refleja su estado actual. El twin se actualiza automáticamente al recibir telemetría confirmada por Node-RED.
+Cada dispositivo tiene un gemelo digital creado automáticamente al registrarse. El twin mantiene el último estado conocido del dispositivo en formato JSON y se actualiza al recibir telemetría confirmada por Node-RED.
 
-### 3. Monitoreo de telemetría en tiempo real
-Recepción de datos via MQTT con actualización del Digital Twin en tiempo real via WebSocket. El frontend muestra el badge "En vivo" cuando llegan datos nuevos.
+### 3. Sincronización bidireccional
+El administrador puede editar valores de propiedades marcadas como "editables" desde el modal de información del dispositivo. El cambio se persiste en el Digital Twin, queda registrado en el historial de telemetría para trazabilidad, y se propaga al dispositivo físico mediante el flujo MQTT existente (`smartcampus/ack` → Node-RED → `smartcampus/confirm`).
 
-### 4. Sistema de alertas automáticas
-Alertas configurables por umbral desde la interfaz. Envío de correo electrónico con cooldown de 30 minutos y notificaciones visuales (toasts) en la app.
+### 4. Monitoreo de telemetría en tiempo real
+Recepción de datos via MQTT con actualización del Digital Twin en tiempo real via WebSocket. El frontend muestra el badge "En vivo" cuando llegan datos nuevos y lo oculta tras 4 segundos.
 
-### 5. Autenticación JWT y control de acceso
-Login con JWT de 24 horas. Dos roles: ADMIN (acceso total) y VIEWER (solo lectura). Los botones de escritura se ocultan automáticamente al VIEWER.
+### 5. Sistema de alertas automáticas
+Alertas configurables por umbral (GREATER_THAN / LESS_THAN) desde la interfaz. Envío de correo electrónico via Gmail con cooldown de 30 minutos por dispositivo por regla. Notificaciones visuales (toasts) en la app que no se repiten mientras el valor siga en alerta.
 
-### 6. Gráficas históricas
+### 6. Autenticación JWT y control de acceso por roles
+Login con JWT de 24 horas firmado con HS256. Dos roles: ADMIN (acceso total) y VIEWER (solo lectura). Los botones y pestañas de escritura se ocultan automáticamente al VIEWER. El token expirado redirige al login automáticamente.
+
+### 7. Gráficas históricas
 Gráficas de temperatura, humedad y batería con Chart.js. Filtro por dispositivo y selección de últimos 20, 50 o 100 registros.
 
-### 7. Panel de analítica y exportación
-Estadísticas por dispositivo y propiedad (mínimo, promedio, máximo, cantidad de registros). Filtros por dispositivo y rango de fechas. Exportación a CSV y PDF.
+### 8. Panel de analítica y exportación de telemetría
+Estadísticas por dispositivo y propiedad (mínimo, promedio, máximo, cantidad de registros). Filtros por dispositivo y rango de fechas. Exportación a CSV y PDF con tabla de estadísticas y detalle de registros.
 
-### 8. Documentación de la API
-Swagger UI disponible en `/api/swagger-ui.html` con soporte para autenticación JWT integrada.
+### 9. Dashboard de KPIs
+Panel de métricas de administración integrado en el Dashboard: total de dispositivos, conteo por estado (ONLINE/OFFLINE/ERROR), total de Digital Twins activos, total de propiedades registradas, último dispositivo activo con tiempo relativo, barra de estado de la flota, distribución por tipo y namespace. Se actualiza cada 30 segundos y reactivamente al recibir telemetría en vivo.
+
+### 10. Gestión de usuarios
+Interfaz para crear, editar y eliminar usuarios del sistema con asignación de rol. Muestra indicador "Tú" en el usuario activo y previene la auto-eliminación. Las contraseñas se encriptan con BCrypt. Solo accesible por ADMIN.
+
+### 11. Modo mantenimiento
+Permite retirar un dispositivo de servicio sin eliminarlo del sistema. El scheduler no cambia el estado de dispositivos en MAINTENANCE, y el procesamiento de telemetría tampoco sobreescribe su estado. El admin puede reactivarlo en cualquier momento con un solo clic.
+
+### 12. Detección de dispositivos desconocidos
+Cuando llega telemetría de un dispositivo no registrado, el sistema lo detecta, guarda el evento con el payload recibido, y notifica al frontend en tiempo real via WebSocket. El administrador ve un banner en la pestaña Dispositivos con los datos recibidos y puede crear el dispositivo (con el código pre-llenado en el formulario) o ignorar el evento.
+
+### 13. Exportación de inventario de dispositivos
+Botones CSV y PDF en el encabezado de la vista Dispositivos. El reporte incluye código, nombre, tipo, namespace, ubicación, tags, estado y última vez visto. Respeta los filtros activos exportando únicamente los dispositivos visibles en pantalla.
+
+### 14. Documentación de la API
+Swagger UI disponible en `/api/swagger-ui.html` con soporte para autenticación JWT integrada, organizado por controlador con modelos de request y response.
 
 ---
 
@@ -555,10 +678,11 @@ Swagger UI disponible en `/api/swagger-ui.html` con soporte para autenticación 
 server.port=8090
 server.servlet.context-path=/api
 
-# Base de datos
+# Base de datos MySQL
 spring.datasource.url=${DATABASE_URL}
 spring.datasource.username=${DATABASE_USERNAME}
 spring.datasource.password=${DATABASE_PASSWORD}
+spring.jpa.hibernate.ddl-auto=update
 
 # JWT
 jwt.secret=smartcampus-uis-proyecto-grado-secret-key-2026-muy-larga
@@ -569,24 +693,32 @@ spring.mail.host=smtp.gmail.com
 spring.mail.port=587
 spring.mail.username=smartcampus.uis@gmail.com
 spring.mail.password=<app-password>
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
 
 # Alertas
 alert.mail.recipient=smartcampus.uis@gmail.com
 alert.cooldown.minutes=30
+
+# MQTT — HiveMQ Cloud
+mqtt.broker=ssl://<host>.hivemq.cloud:8883
+mqtt.username=<usuario>
+mqtt.password=<contraseña>
+mqtt.client-id=smartcampus-backend
 ```
 
 ---
 
 ## 9. Usuarios del Sistema
 
-Los siguientes usuarios se crean automáticamente al iniciar la aplicación si no existen:
+Los siguientes usuarios se crean automáticamente al iniciar la aplicación (`DataInitializer`) si no existen:
 
 | Usuario | Contraseña | Rol | Permisos |
 |---|---|---|---|
 | `admin` | `admin123` | ADMIN | Acceso total al sistema |
 | `viewer` | `viewer123` | VIEWER | Solo lectura |
 
-> **Nota:** Se recomienda cambiar las contraseñas por defecto antes de llevar el sistema a producción.
+> **Nota:** Se recomienda cambiar las contraseñas por defecto antes de llevar el sistema a producción real.
 
 ---
 
@@ -610,4 +742,4 @@ Para autenticarse en Swagger:
 3. Hacer clic en **Authorize** e ingresar: `Bearer <token>`
 
 ---
-*SmartCampus UIS — Proyecto de Grado*
+*SmartCampus UIS — Proyecto de Grado — Universidad Industrial de Santander — 2026*

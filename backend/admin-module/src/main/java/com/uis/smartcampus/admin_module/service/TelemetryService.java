@@ -105,9 +105,6 @@ public class TelemetryService {
 
         }
 
-        // 🔔 Verificar umbrales y enviar alertas si corresponde
-        alertService.checkAndAlert(deviceCode, filteredData);
-
         if (!"MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
             Object batteryObject = filteredData.get("battery_level");
             if (batteryObject != null) {
@@ -136,6 +133,9 @@ public class TelemetryService {
         telemetryRecordRepository.save(record);
 
         System.out.println("✅ Telemetry saved for device: " + deviceCode);
+
+        // Evaluar reglas de alerta y notificar via WebSocket si se superan umbrales
+        alertService.checkAndAlert(deviceCode, filteredData);
 
         // Publicar ACK — el Digital Twin se actualiza al recibir la confirmación
         mqttPublisherService.publishAck(deviceCode, filteredData);

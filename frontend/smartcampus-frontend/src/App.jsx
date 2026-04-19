@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getDevices } from "./services/deviceService";
 import { getTwins } from "./services/twinService";
 import { getTelemetry, getTelemetryByDevice } from "./services/telemetryService";
@@ -9,10 +9,10 @@ import PropertyManager from "./components/PropertyManager";
 import Tabs from "./components/Tabs";
 import ToastAlert from "./components/ToastAlert";
 import LoginPage from "./components/LoginPage";
-import AlertRulesManager from "./components/AlertRulesManager";
 import AnalyticsPanel from "./components/AnalyticsPanel";
 import UserManager from "./components/UserManager";
 import KpiDashboard from "./components/KpiDashboard";
+import AlertRulesManager from "./components/AlertRulesManager";
 import { useTwinWebSocket } from "./services/useTwinWebSocket";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
@@ -67,36 +67,48 @@ function App() {
   const [liveTwinIds, setLiveTwinIds] = useState(new Set());
   const [unknownDeviceSignal, setUnknownDeviceSignal] = useState(null);
 
-  useTwinWebSocket((msg) => {
-    // Actualiza el twin correspondiente en el estado sin hacer fetch
-    setTwins(prev => prev.map(t =>
-      t.id === msg.twinId
-        ? { ...t, telemetryJson: msg.telemetryJson, lastUpdate: msg.lastUpdate }
-        : t
-    ));
-    // Marca el twin como "en vivo" durante 4 segundos
-    setLiveTwinIds(prev => new Set([...prev, msg.twinId]));
-    setTimeout(() => {
-      setLiveTwinIds(prev => {
-        const next = new Set(prev);
-        next.delete(msg.twinId);
-        return next;
+  useTwinWebSocket(
+    (msg) => {
+      // Actualiza el twin correspondiente en el estado sin hacer fetch
+      setTwins(prev => prev.map(t =>
+        t.id === msg.twinId
+          ? { ...t, telemetryJson: msg.telemetryJson, lastUpdate: msg.lastUpdate }
+          : t
+      ));
+      // Marca el twin como "en vivo" durante 4 segundos
+      setLiveTwinIds(prev => new Set([...prev, msg.twinId]));
+      setTimeout(() => {
+        setLiveTwinIds(prev => {
+          const next = new Set(prev);
+          next.delete(msg.twinId);
+          return next;
+        });
+      }, 4000);
+    },
+    (msg) => {
+      // Dispositivo desconocido detectado — señal para que DeviceManager recargue
+      setUnknownDeviceSignal(msg);
+      addToast({
+        type: "warning",
+        icon: "⚠️",
+        title: "Dispositivo desconocido",
+        message: `Se recibió telemetría de "${msg.deviceCode}" que no está registrado`
       });
-    }, 4000);
-  }, (msg) => {
-    // Dispositivo desconocido detectado — señal para que DeviceManager recargue
-    setUnknownDeviceSignal(msg);
-    addToast({
-      type: "warning",
-      icon: "⚠️",
-      title: "Dispositivo desconocido",
-      message: `Se recibió telemetría de "${msg.deviceCode}" que no está registrado`
-    });
-  });
+    },
+    (msg) => {
+      // Alerta de umbral recibida del backend
+      const operatorSymbol = msg.operator === "GREATER_THAN" ? ">" : "<";
+      addToast({
+        type: msg.operator === "GREATER_THAN" ? "critical" : "warning",
+        icon: "🔔",
+        title: msg.label || "Alerta de umbral",
+        message: `${msg.deviceCode} — ${msg.property}: ${msg.value} ${operatorSymbol} ${msg.threshold}`
+      });
+    }
+  );
 
   // ── Alertas / toasts ────────────────────────────────────────────────────────
   const [toasts, setToasts] = useState([]);
-  const shownAlerts = useRef(new Set());
 
   const addToast = (toast) => {
     const id = Date.now() + Math.random();
@@ -108,60 +120,6 @@ function App() {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // ── Detección de umbrales en telemetría ────────────────────────────────────
-  useEffect(() => {
-    if (telemetry.length === 0) return;
-
-    // Obtener el registro más reciente por dispositivo
-    const latestByDevice = {};
-    telemetry.forEach(record => {
-      const code = record.device?.code;
-      if (!code) return;
-      if (!latestByDevice[code] || new Date(record.timestamp) > new Date(latestByDevice[code].timestamp)) {
-        latestByDevice[code] = record;
-      }
-    });
-
-    Object.entries(latestByDevice).forEach(([deviceCode, record]) => {
-      try {
-        const data = JSON.parse(record.telemetryJson || "{}");
-
-        // Temperatura > 80°C
-        if (data.temperature !== undefined) {
-          const temp = parseFloat(data.temperature);
-          const key = `${deviceCode}_temp_high`;
-          if (temp > 80 && !shownAlerts.current.has(key)) {
-            shownAlerts.current.add(key);
-            addToast({
-              type: "critical",
-              icon: "🌡️",
-              title: "Temperatura Crítica",
-              message: `Dispositivo ${deviceCode}: ${temp.toFixed(1)}°C (umbral: 80°C)`
-            });
-          } else if (temp <= 80) {
-            shownAlerts.current.delete(key);
-          }
-        }
-
-        // Batería < 10%
-        if (data.battery_level !== undefined) {
-          const bat = parseFloat(data.battery_level);
-          const key = `${deviceCode}_bat_low`;
-          if (bat < 10 && !shownAlerts.current.has(key)) {
-            shownAlerts.current.add(key);
-            addToast({
-              type: "warning",
-              icon: "🔋",
-              title: "Batería Baja",
-              message: `Dispositivo ${deviceCode}: ${bat.toFixed(1)}% (umbral: 10%)`
-            });
-          } else if (bat >= 10) {
-            shownAlerts.current.delete(key);
-          }
-        }
-      } catch {}
-    });
-  }, [telemetry]);
 
   // ── Carga inicial y polling cada 10 segundos (pausa si hay formulario abierto)
   useEffect(() => {
@@ -364,11 +322,11 @@ useEffect(() => {
       label: `Analítica`,
       content: <AnalyticsPanel devices={devices} />
     },
+    {
+      label: `Alertas`,
+      content: <AlertRulesManager isAdmin={isAdmin} />
+    },
     ...(isAdmin ? [
-      {
-        label: `Alertas`,
-        content: <AlertRulesManager />
-      },
       {
         label: `Usuarios`,
         content: <UserManager />

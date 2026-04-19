@@ -5,8 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "alert_rules")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -16,22 +15,11 @@ public class AlertRule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Propiedad que se evalúa (ej: "temperature", "battery_level")
-    @Column(nullable = false)
-    private String property;
-
-    // Operador: "GREATER_THAN" o "LESS_THAN"
-    @Column(nullable = false)
-    private String operator;
-
-    // Valor umbral (ej: 80.0, 10.0)
-    @Column(nullable = false)
+    private String property;   // ej: temperature, battery_level
+    private String operator;   // GREATER_THAN | LESS_THAN
     private Double threshold;
-
-    // Descripción legible (ej: "Temperatura crítica")
     private String label;
 
-    // Si está activa o no
-    @Column(nullable = false)
+    @Builder.Default
     private boolean active = true;
 }

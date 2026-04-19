@@ -1,84 +1,82 @@
 import { useEffect, useState } from "react";
-import { getAlertRules, createAlertRule, updateAlertRule, deleteAlertRule } from "../services/alertRuleService";
+import {
+  getAlertRules,
+  createAlertRule,
+  updateAlertRule,
+  deleteAlertRule,
+} from "../services/alertRuleService";
 import "./AlertRulesManager.css";
 
-const EMPTY_FORM = { property: "", operator: "GREATER_THAN", threshold: "", label: "", active: true };
+const EMPTY_RULE = {
+  property: "",
+  operator: "GREATER_THAN",
+  threshold: "",
+  label: "",
+  active: true,
+};
 
-export default function AlertRulesManager() {
-  const [rules, setRules]       = useState([]);
+export default function AlertRulesManager({ isAdmin }) {
+  const [rules, setRules] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm]         = useState(EMPTY_FORM);
-  const [loading, setLoading]   = useState(false);
-  const [message, setMessage]   = useState("");
+  const [form, setForm] = useState(EMPTY_RULE);
 
-  useEffect(() => { loadRules(); }, []);
-
-  useEffect(() => {
-    if (message) {
-      const t = setTimeout(() => setMessage(""), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [message]);
-
-  const loadRules = async () => {
+  const load = async () => {
     try {
       const res = await getAlertRules();
       setRules(res.data || []);
-    } catch {
-      setMessage("Error al cargar reglas");
-    }
-  };
-
-  const resetForm = () => {
-    setForm(EMPTY_FORM);
-    setEditingId(null);
-    setShowForm(false);
-  };
-
-  const handleEdit = (rule) => {
-    setForm({
-      property:  rule.property,
-      operator:  rule.operator,
-      threshold: rule.threshold,
-      label:     rule.label || "",
-      active:    rule.active
-    });
-    setEditingId(rule.id);
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.property.trim() || form.threshold === "") {
-      setMessage("Propiedad y umbral son requeridos");
-      return;
-    }
-    setLoading(true);
-    try {
-      const payload = { ...form, threshold: parseFloat(form.threshold) };
-      if (editingId) {
-        await updateAlertRule(editingId, payload);
-        setMessage("Regla actualizada");
-      } else {
-        await createAlertRule(payload);
-        setMessage("Regla creada");
-      }
-      resetForm();
-      loadRules();
-    } catch {
-      setMessage("Error al guardar la regla");
+    } catch (e) {
+      console.error("Error al cargar reglas de alerta:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggle = async (rule) => {
+  useEffect(() => { load(); }, []);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  };
+
+  const handleOpenCreate = () => {
+    setForm(EMPTY_RULE);
+    setEditingId(null);
+    setShowForm(true);
+  };
+
+  const handleOpenEdit = (rule) => {
+    setForm({
+      property:  rule.property,
+      operator:  rule.operator,
+      threshold: rule.threshold,
+      label:     rule.label,
+      active:    rule.active,
+    });
+    setEditingId(rule.id);
+    setShowForm(true);
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_RULE);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = { ...form, threshold: parseFloat(form.threshold) };
     try {
-      await updateAlertRule(rule.id, { ...rule, active: !rule.active });
-      loadRules();
-    } catch {
-      setMessage("Error al actualizar el estado");
+      if (editingId) {
+        await updateAlertRule(editingId, payload);
+      } else {
+        await createAlertRule(payload);
+      }
+      handleCancel();
+      load();
+    } catch (err) {
+      console.error("Error al guardar regla:", err);
     }
   };
 
@@ -86,137 +84,192 @@ export default function AlertRulesManager() {
     if (!window.confirm("¿Eliminar esta regla de alerta?")) return;
     try {
       await deleteAlertRule(id);
-      setMessage("Regla eliminada");
-      loadRules();
-    } catch {
-      setMessage("Error al eliminar la regla");
+      load();
+    } catch (err) {
+      console.error("Error al eliminar regla:", err);
     }
   };
+
+  const handleToggleActive = async (rule) => {
+    try {
+      await updateAlertRule(rule.id, { ...rule, active: !rule.active });
+      load();
+    } catch (err) {
+      console.error("Error al cambiar estado de regla:", err);
+    }
+  };
+
+  const operatorLabel = (op) =>
+    op === "GREATER_THAN" ? "Mayor que ( > )" : "Menor que ( < )";
 
   return (
     <div className="alert-rules-manager">
 
-      <div className="ar-header">
+      <div className="alert-rules-header">
         <div>
           <h2>Reglas de Alerta</h2>
-          <p className="ar-subtitle">Define cuándo el sistema debe enviar alertas por correo y notificaciones en la app.</p>
+          <p>
+            Configura umbrales por propiedad. Cuando un dispositivo supere un umbral
+            activo recibirás una notificación en pantalla.
+          </p>
         </div>
-        <button className="btn-primary" onClick={() => { resetForm(); setShowForm(!showForm); }}>
-          {showForm ? "✕ Cancelar" : "+ Nueva Regla"}
-        </button>
+        {isAdmin && (
+          <button className="btn-add-rule" onClick={handleOpenCreate}>
+            + Nueva regla
+          </button>
+        )}
       </div>
 
-      {message && (
-        <div className={`message ${message.includes("Error") ? "error" : "success"}`}>
-          {message.includes("Error") ? "❌" : "✅"} {message}
-        </div>
-      )}
+      <div className="alert-info-card">
+        Las alertas se evalúan en el backend al recibir telemetría. Si el valor de una
+        propiedad supera el umbral definido, se envía una notificación en tiempo real
+        via WebSocket. Hay un <strong>cooldown de 5 minutos</strong> por regla y
+        dispositivo para evitar notificaciones repetitivas.
+      </div>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="ar-form">
+      {/* ── Formulario ── */}
+      {showForm && isAdmin && (
+        <form className="alert-rule-form" onSubmit={handleSubmit}>
           <h3>{editingId ? "Editar regla" : "Nueva regla"}</h3>
-          <div className="ar-form-grid">
 
-            <div className="form-group">
-              <label>Etiqueta</label>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Propiedad</label>
               <input
-                type="text"
-                placeholder="Ej: Temperatura crítica"
-                value={form.label}
-                onChange={e => setForm({ ...form, label: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Propiedad *</label>
-              <input
-                type="text"
-                placeholder="Ej: temperature, battery_level"
+                name="property"
+                placeholder="ej: temperature, battery_level"
                 value={form.property}
-                onChange={e => setForm({ ...form, property: e.target.value })}
+                onChange={handleChange}
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label>Operador *</label>
-              <select value={form.operator} onChange={e => setForm({ ...form, operator: e.target.value })}>
-                <option value="GREATER_THAN">Mayor que (&gt;)</option>
-                <option value="LESS_THAN">Menor que (&lt;)</option>
+            <div className="form-field">
+              <label>Operador</label>
+              <select name="operator" value={form.operator} onChange={handleChange}>
+                <option value="GREATER_THAN">Mayor que ( &gt; )</option>
+                <option value="LESS_THAN">Menor que ( &lt; )</option>
               </select>
             </div>
 
-            <div className="form-group">
-              <label>Umbral *</label>
+            <div className="form-field">
+              <label>Umbral</label>
               <input
+                name="threshold"
                 type="number"
                 step="any"
-                placeholder="Ej: 80, 10"
+                placeholder="ej: 80"
                 value={form.threshold}
-                onChange={e => setForm({ ...form, threshold: e.target.value })}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-field" style={{ flex: "3 1 280px" }}>
+              <label>Etiqueta (descripción)</label>
+              <input
+                name="label"
+                placeholder="ej: Temperatura crítica"
+                value={form.label}
+                onChange={handleChange}
                 required
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-field" style={{ flex: "0 0 auto", justifyContent: "flex-end" }}>
               <label>Activa</label>
-              <select value={form.active ? "yes" : "no"} onChange={e => setForm({ ...form, active: e.target.value === "yes" })}>
-                <option value="yes">Sí</option>
-                <option value="no">No</option>
-              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  name="active"
+                  checked={form.active}
+                  onChange={handleChange}
+                  style={{ width: 16, height: 16 }}
+                />
+                {form.active ? "Sí" : "No"}
+              </label>
             </div>
-
           </div>
-          <button type="submit" className="btn-submit" disabled={loading}>
-            {loading ? "Guardando..." : editingId ? "Actualizar" : "Crear regla"}
-          </button>
+
+          <div className="form-actions">
+            <button type="button" className="btn-cancel" onClick={handleCancel}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn-save">
+              {editingId ? "Guardar cambios" : "Crear regla"}
+            </button>
+          </div>
         </form>
       )}
 
-      {rules.length === 0 ? (
-        <p className="empty-state">No hay reglas de alerta configuradas.</p>
-      ) : (
-        <div className="ar-table-wrapper">
-          <table className="ar-table">
+      {/* ── Tabla ── */}
+      <div className="alert-rules-table-wrapper">
+        {loading ? (
+          <div className="empty-rules">Cargando reglas...</div>
+        ) : rules.length === 0 ? (
+          <div className="empty-rules">
+            No hay reglas configuradas.
+            {isAdmin && " Usa el botón "+ Nueva regla" para crear una."}
+          </div>
+        ) : (
+          <table className="alert-rules-table">
             <thead>
               <tr>
                 <th>Etiqueta</th>
                 <th>Propiedad</th>
                 <th>Condición</th>
+                <th>Umbral</th>
                 <th>Estado</th>
-                <th>Acciones</th>
+                {isAdmin && <th>Acciones</th>}
               </tr>
             </thead>
             <tbody>
-              {rules.map((rule, i) => (
-                <tr key={rule.id} style={{ background: i % 2 === 0 ? "var(--bg-card)" : "var(--bg-hover)" }}>
-                  <td><strong>{rule.label || rule.property}</strong></td>
-                  <td><code>{rule.property}</code></td>
+              {rules.map(rule => (
+                <tr key={rule.id}>
+                  <td><strong>{rule.label}</strong></td>
+                  <td style={{ fontFamily: "monospace" }}>{rule.property}</td>
                   <td>
-                    <span className="ar-condition">
-                      {rule.operator === "GREATER_THAN" ? ">" : "<"} {rule.threshold}
+                    <span className="badge-operator">{operatorLabel(rule.operator)}</span>
+                  </td>
+                  <td><strong>{rule.threshold}</strong></td>
+                  <td>
+                    <span className={rule.active ? "badge-active" : "badge-inactive"}>
+                      {rule.active ? "Activa" : "Inactiva"}
                     </span>
                   </td>
-                  <td>
-                    <button
-                      className={`ar-toggle ${rule.active ? "active" : "inactive"}`}
-                      onClick={() => handleToggle(rule)}
-                    >
-                      {rule.active ? "Activa" : "Inactiva"}
-                    </button>
-                  </td>
-                  <td>
-                    <div className="ar-actions">
-                      <button className="btn-edit" onClick={() => handleEdit(rule)}>✏️ Editar</button>
-                      <button className="btn-delete" onClick={() => handleDelete(rule.id)}>🗑️ Eliminar</button>
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td>
+                      <div className="rule-actions">
+                        <button
+                          className={`btn-toggle-rule${rule.active ? " deactivate" : ""}`}
+                          onClick={() => handleToggleActive(rule)}
+                        >
+                          {rule.active ? "Desactivar" : "Activar"}
+                        </button>
+                        <button
+                          className="btn-edit-rule"
+                          onClick={() => handleOpenEdit(rule)}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="btn-delete-rule"
+                          onClick={() => handleDelete(rule.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
+
     </div>
   );
 }

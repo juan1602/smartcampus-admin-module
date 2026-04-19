@@ -10,7 +10,7 @@ const WS_URL = (import.meta.env.VITE_API_URL || "http://localhost:8090/api") + "
  *
  * message = { deviceCode, twinId, telemetryJson, lastUpdate }
  */
-export function useTwinWebSocket(onTwinUpdate, onUnknownDevice) {
+export function useTwinWebSocket(onTwinUpdate, onUnknownDevice, onAlert) {
   const clientRef = useRef(null);
 
   useEffect(() => {
@@ -31,6 +31,14 @@ export function useTwinWebSocket(onTwinUpdate, onUnknownDevice) {
           try {
             const message = JSON.parse(frame.body);
             if (onUnknownDevice) onUnknownDevice(message);
+          } catch (e) {
+            console.error("Error parseando mensaje WebSocket:", e);
+          }
+        });
+        client.subscribe("/topic/alerts", (frame) => {
+          try {
+            const message = JSON.parse(frame.body);
+            if (onAlert) onAlert(message);
           } catch (e) {
             console.error("Error parseando mensaje WebSocket:", e);
           }

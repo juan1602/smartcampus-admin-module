@@ -38,9 +38,8 @@ public class AlertRuleController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!repository.existsById(id)) return ResponseEntity.notFound().build();
+    public ResponseEntity<?> delete(@PathVariable Long id) {
         repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

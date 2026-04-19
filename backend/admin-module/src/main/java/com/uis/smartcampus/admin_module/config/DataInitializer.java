@@ -42,18 +42,16 @@ public class DataInitializer implements CommandLineRunner {
                     .property("temperature")
                     .operator("GREATER_THAN")
                     .threshold(80.0)
-                    .label("Temperatura crítica")
+                    .label("Temperatura crítica (>80°C)")
                     .active(true)
                     .build());
-
             alertRuleRepository.save(AlertRule.builder()
                     .property("battery_level")
                     .operator("LESS_THAN")
                     .threshold(10.0)
-                    .label("Batería baja")
+                    .label("Batería baja (<10%)")
                     .active(true)
                     .build());
-
             System.out.println("✅ Reglas de alerta por defecto creadas");
         }
     }
