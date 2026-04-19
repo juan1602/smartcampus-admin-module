@@ -17,9 +17,11 @@ import com.uis.smartcampus.admin_module.model.Property;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.model.DigitalTwin;
+import com.uis.smartcampus.admin_module.model.TelemetryRecord;
 import com.uis.smartcampus.admin_module.repository.PropertyRepository;
 import com.uis.smartcampus.admin_module.repository.DeviceRepository;
 import com.uis.smartcampus.admin_module.repository.DigitalTwinRepository;
+import com.uis.smartcampus.admin_module.repository.TelemetryRecordRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -32,6 +34,7 @@ public class DeviceService {
     private final DeviceRepository repository;
     private final DigitalTwinRepository twinRepository;
     private final MqttPublisherService mqttPublisher;
+    private final TelemetryRecordRepository telemetryRecordRepository;
     @Autowired
     private PropertyRepository propertyRepository;
 
@@ -136,8 +139,20 @@ public class DeviceService {
         }
 
         twin.setLastUpdate(LocalDateTime.now());
-
         twinRepository.save(twin);
+
+        // Guardar en historial de telemetría para trazabilidad
+        try {
+            Map<String, Object> recordData = new HashMap<>();
+            recordData.put(propertyName, value);
+            TelemetryRecord record = new TelemetryRecord();
+            record.setDevice(device);
+            record.setTelemetryJson(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(recordData));
+            record.setTimestamp(LocalDateTime.now());
+            telemetryRecordRepository.save(record);
+        } catch (Exception e) {
+            System.err.println("❌ Error guardando registro de telemetría: " + e.getMessage());
+        }
 
         // Publicar el cambio por el mismo flujo de Node-RED (ack → confirm → RPi)
         Map<String, Object> configData = new HashMap<>();
