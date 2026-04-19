@@ -31,6 +31,7 @@ public class DeviceService {
 
     private final DeviceRepository repository;
     private final DigitalTwinRepository twinRepository;
+    private final MqttPublisherService mqttPublisher;
     @Autowired
     private PropertyRepository propertyRepository;
 
@@ -138,6 +139,10 @@ public class DeviceService {
 
         twinRepository.save(twin);
 
+        // Publicar el cambio por el mismo flujo de Node-RED (ack → confirm → RPi)
+        Map<String, Object> configData = new HashMap<>();
+        configData.put(propertyName, value);
+        mqttPublisher.publishAck(device.getCode(), configData);
     }
 
     public Map<String, Object> getStats() {
