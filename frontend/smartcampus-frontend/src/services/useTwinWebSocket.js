@@ -2,8 +2,7 @@ import { useEffect, useRef } from "react";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
-const WS_URL = (import.meta.env.VITE_API_URL || "http://localhost:8090/api")
-  .replace(/\/api$/, "") + "/ws";
+const WS_URL = (import.meta.env.VITE_API_URL || "http://localhost:8090/api") + "/ws";
 
 /**
  * Se conecta al WebSocket del backend y llama a onTwinUpdate(message)
