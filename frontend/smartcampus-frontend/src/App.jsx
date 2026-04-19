@@ -10,6 +10,7 @@ import Tabs from "./components/Tabs";
 import ToastAlert from "./components/ToastAlert";
 import LoginPage from "./components/LoginPage";
 import AlertRulesManager from "./components/AlertRulesManager";
+import { useTwinWebSocket } from "./services/useTwinWebSocket";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
 
@@ -58,6 +59,27 @@ function App() {
 
   // ── Estado para pausar polling durante edición ───────────────────────────────
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // ── WebSocket — Digital Twin en tiempo real ─────────────────────────────────
+  const [liveTwinIds, setLiveTwinIds] = useState(new Set());
+
+  useTwinWebSocket((msg) => {
+    // Actualiza el twin correspondiente en el estado sin hacer fetch
+    setTwins(prev => prev.map(t =>
+      t.id === msg.twinId
+        ? { ...t, telemetryJson: msg.telemetryJson, lastUpdate: msg.lastUpdate }
+        : t
+    ));
+    // Marca el twin como "en vivo" durante 4 segundos
+    setLiveTwinIds(prev => new Set([...prev, msg.twinId]));
+    setTimeout(() => {
+      setLiveTwinIds(prev => {
+        const next = new Set(prev);
+        next.delete(msg.twinId);
+        return next;
+      });
+    }, 4000);
+  });
 
   // ── Alertas / toasts ────────────────────────────────────────────────────────
   const [toasts, setToasts] = useState([]);
@@ -278,6 +300,7 @@ useEffect(() => {
             data={twins.slice(0, 5)}
             type="twin"
             onOpen={() => setShowTwinsModal(true)}
+            liveTwinIds={liveTwinIds}
           />
           <DataCard
             title="Historial de Telemetría"

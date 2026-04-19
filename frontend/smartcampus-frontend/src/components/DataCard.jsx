@@ -2,7 +2,7 @@ import "./DataCard.css";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-export default function DataCard({ title, count, data, type, onOpen, onDeviceClick }) {
+export default function DataCard({ title, count, data, type, onOpen, onDeviceClick, liveTwinIds }) {
 
   const [twinInfo, setTwinInfo] = useState(null);
   let telemetryData = {};
@@ -50,10 +50,27 @@ export default function DataCard({ title, count, data, type, onOpen, onDeviceCli
               {type === "twin" && (
                 <>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <strong>{item.name || `Twin ${item.id}`}</strong>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <strong>{item.name || `Twin ${item.id}`}</strong>
+                      {liveTwinIds?.has(item.id) && (
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          fontSize: 11, fontWeight: 700, color: "#22c55e",
+                          background: "rgba(34,197,94,0.12)", padding: "1px 7px",
+                          borderRadius: 999
+                        }}>
+                          <span style={{
+                            width: 6, height: 6, borderRadius: "50%",
+                            background: "#22c55e", display: "inline-block",
+                            animation: "pulse 1s infinite"
+                          }} />
+                          En vivo
+                        </span>
+                      )}
+                    </div>
                     {item.device?.code && (
-                      <span style={{ 
-                        fontSize: "0.75rem", 
+                      <span style={{
+                        fontSize: "0.75rem",
                         color: "var(--text-secondary)",
                         display: "flex",
                         alignItems: "center",
@@ -61,7 +78,7 @@ export default function DataCard({ title, count, data, type, onOpen, onDeviceCli
                       }}>
                        Dispositivo:<span style={{ color: "var(--color-primary)", fontWeight: 600 }}>{item.device.code}</span>
                       </span>
-                      )}
+                    )}
                   </div>
 
                   <button

@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.model.DigitalTwin;
 import com.uis.smartcampus.admin_module.model.TelemetryRecord;
+import com.uis.smartcampus.admin_module.model.TwinUpdateMessage;
 import com.uis.smartcampus.admin_module.repository.DeviceRepository;
 import com.uis.smartcampus.admin_module.repository.DigitalTwinRepository;
 import com.uis.smartcampus.admin_module.repository.TelemetryRecordRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class TelemetryService {
     private final TelemetryRecordRepository telemetryRecordRepository;
     private final MqttPublisherService mqttPublisherService;
     private final AlertService alertService;
+    private final SimpMessagingTemplate wsTemplate;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -153,6 +156,14 @@ public class TelemetryService {
 
             System.out.println("✅ Digital Twin actualizado tras confirmación: " + deviceCode);
             System.out.println("Twin data: " + mergedJson);
+
+            // 📡 Notificar al frontend en tiempo real via WebSocket
+            wsTemplate.convertAndSend("/topic/twins", new TwinUpdateMessage(
+                deviceCode,
+                twin.getId(),
+                mergedJson,
+                twin.getLastUpdate().toString()
+            ));
 
         } catch (Exception e) {
             e.printStackTrace();

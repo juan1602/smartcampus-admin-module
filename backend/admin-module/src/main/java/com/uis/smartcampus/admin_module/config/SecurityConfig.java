@@ -38,8 +38,9 @@ public class SecurityConfig {
                 // Preflight CORS — siempre permitido
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Login — público
+                // Login y WebSocket — públicos
                 .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
 
                 // Lectura — ADMIN y VIEWER
                 .requestMatchers(HttpMethod.GET, "/devices/**").hasAnyRole("ADMIN", "VIEWER")
