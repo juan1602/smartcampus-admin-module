@@ -1,296 +1,306 @@
-.alert-rules-manager {
-  padding: 24px;
+/* ══════════════════════════════════════
+   AlertRulesManager — estilos completos
+   ══════════════════════════════════════ */
+
+.arm-wrapper {
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+  max-width: 1100px;
 }
 
-.alert-rules-header {
+/* ── Cabecera ── */
+.arm-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 12px;
 }
 
-.alert-rules-header h2 {
-  margin: 0;
-  font-size: 20px;
+.arm-header-text h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.alert-rules-header p {
-  margin: 4px 0 0;
+.arm-header-text p {
+  margin: 0;
   font-size: 13px;
   color: var(--text-secondary);
 }
 
-/* ── Formulario ── */
-.alert-rule-form {
+/* ── Info banner ── */
+.arm-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.arm-info-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+.arm-info-banner strong { color: var(--text-primary); }
+
+/* ── Tarjeta del formulario ── */
+.arm-form-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.arm-form-title {
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-hover);
+}
+
+.arm-form-card form {
   padding: 20px;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Grid del formulario ── */
+.arm-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
 }
 
-.alert-rule-form h3 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
-.form-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.form-field {
+.arm-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  flex: 1 1 160px;
+  gap: 6px;
 }
 
-.form-field label {
+.arm-field-full {
+  grid-column: 1 / -1;
+}
+
+.arm-label {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
 }
 
-.form-field input,
-.form-field select {
-  padding: 8px 12px;
+.arm-required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.arm-input,
+.arm-select {
+  padding: 9px 12px;
   border-radius: 8px;
   border: 1.5px solid var(--border-color);
   font-size: 14px;
   background: var(--bg-main);
   color: var(--text-primary);
   font-family: inherit;
-  transition: border-color 0.2s;
-}
-
-.form-field input:focus,
-.form-field select:focus {
+  transition: border-color 0.18s, box-shadow 0.18s;
   outline: none;
+}
+
+.arm-input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
+.arm-input:focus,
+.arm-select:focus {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 108, 53, 0.12);
 }
 
-.form-actions {
+/* ── Acciones del formulario ── */
+.arm-form-actions {
   display: flex;
-  gap: 10px;
   justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
 }
 
-/* ── Tabla de reglas ── */
-.alert-rules-table-wrapper {
+/* ── Botones principales ── */
+.arm-btn-primary {
+  padding: 9px 20px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s, box-shadow 0.18s, opacity 0.18s;
+  box-shadow: 0 2px 8px rgba(0, 108, 53, 0.28);
+  white-space: nowrap;
+}
+
+.arm-btn-primary:hover:not(:disabled) { background: #00532b; }
+.arm-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.arm-btn-cancel {
+  padding: 9px 20px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-color);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.arm-btn-cancel:hover { background: var(--bg-hover); }
+
+/* ── Tarjeta de la tabla ── */
+.arm-table-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
 }
 
-.alert-rules-table {
+/* ── Tabla ── */
+.arm-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
 }
 
-.alert-rules-table th {
-  padding: 11px 16px;
+.arm-table th {
+  padding: 12px 16px;
   text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-card);
+  background: var(--bg-hover);
+  white-space: nowrap;
 }
 
-.alert-rules-table td {
-  padding: 12px 16px;
+.arm-table td {
+  padding: 13px 16px;
   border-bottom: 1px solid var(--bg-hover);
   color: var(--text-primary);
   vertical-align: middle;
 }
 
-.alert-rules-table tr:last-child td {
-  border-bottom: none;
+.arm-table tr:last-child td { border-bottom: none; }
+.arm-table tbody tr:hover td { background: var(--bg-hover); }
+
+/* ── Elementos de celda ── */
+.arm-rule-label { font-weight: 600; }
+
+.arm-code {
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-family: "Courier New", monospace;
+  color: var(--color-primary);
 }
 
-.alert-rules-table tr:hover td {
-  background: var(--bg-hover);
+.arm-threshold {
+  font-size: 15px;
+  color: var(--text-primary);
 }
 
-/* ── Badges de estado ── */
-.badge-active {
+/* ── Badges ── */
+.arm-badge {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  background: rgba(34, 197, 94, 0.15);
+  white-space: nowrap;
+}
+
+.arm-badge-active {
+  background: rgba(34, 197, 94, 0.14);
   color: #22c55e;
 }
 
-.badge-inactive {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(107, 114, 128, 0.15);
+.arm-badge-inactive {
+  background: rgba(107, 114, 128, 0.14);
   color: #9ca3af;
 }
 
-.badge-operator {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-}
-
-/* ── Botones ── */
-.btn-add-rule {
-  padding: 8px 18px;
-  border-radius: 8px;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 108, 53, 0.3);
-}
-
-.btn-add-rule:hover {
-  background: #00532b;
-}
-
-.btn-edit-rule {
-  padding: 5px 12px;
-  border-radius: 6px;
+.arm-badge-op {
   background: rgba(99, 102, 241, 0.12);
   color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
 }
 
-.btn-edit-rule:hover {
-  background: rgba(99, 102, 241, 0.25);
-}
-
-.btn-delete-rule {
-  padding: 5px 12px;
-  border-radius: 6px;
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-delete-rule:hover {
-  background: rgba(239, 68, 68, 0.22);
-}
-
-.btn-toggle-rule {
-  padding: 5px 12px;
-  border-radius: 6px;
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-toggle-rule:hover {
-  background: rgba(34, 197, 94, 0.22);
-}
-
-.btn-toggle-rule.deactivate {
-  background: rgba(107, 114, 128, 0.1);
-  color: #9ca3af;
-  border-color: rgba(107, 114, 128, 0.25);
-}
-
-.btn-toggle-rule.deactivate:hover {
-  background: rgba(107, 114, 128, 0.22);
-}
-
-.btn-save {
-  padding: 8px 18px;
-  border-radius: 8px;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-save:hover {
-  background: #00532b;
-}
-
-.btn-cancel {
-  padding: 8px 18px;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-cancel:hover {
-  background: var(--bg-hover);
-}
-
-.rule-actions {
+/* ── Botones de acción en tabla ── */
+.arm-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.empty-rules {
-  padding: 40px;
+.arm-btn-sm {
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.18s;
+  white-space: nowrap;
+}
+
+.arm-btn-sm-blue {
+  background: rgba(99, 102, 241, 0.1);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.25);
+}
+.arm-btn-sm-blue:hover { background: rgba(99, 102, 241, 0.22); }
+
+.arm-btn-sm-red {
+  background: rgba(239, 68, 68, 0.09);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.22);
+}
+.arm-btn-sm-red:hover { background: rgba(239, 68, 68, 0.2); }
+
+.arm-btn-sm-green {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.22);
+}
+.arm-btn-sm-green:hover { background: rgba(34, 197, 94, 0.22); }
+
+.arm-btn-sm-muted {
+  background: rgba(107, 114, 128, 0.1);
+  color: #9ca3af;
+  border-color: rgba(107, 114, 128, 0.22);
+}
+.arm-btn-sm-muted:hover { background: rgba(107, 114, 128, 0.22); }
+
+/* ── Estado vacío ── */
+.arm-empty {
+  padding: 48px 24px;
   text-align: center;
   color: var(--text-secondary);
   font-size: 14px;
 }
 
-/* ── Info card ── */
-.alert-info-card {
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  border-radius: 10px;
-  padding: 14px 18px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.alert-info-card strong {
-  color: var(--text-primary);
+.arm-empty-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
 }
