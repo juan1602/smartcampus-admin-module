@@ -38,9 +38,14 @@ public class SecurityConfig {
                 // Preflight CORS — siempre permitido
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Login y WebSocket — públicos
+                // Login, WebSocket y Swagger — públicos
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**"
+                ).permitAll()
 
                 // Lectura — ADMIN y VIEWER
                 .requestMatchers(HttpMethod.GET, "/devices/**").hasAnyRole("ADMIN", "VIEWER")
