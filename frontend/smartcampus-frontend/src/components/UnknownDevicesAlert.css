@@ -1,0 +1,131 @@
+.uda-wrapper {
+  border: 1px solid #f97316;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  background: var(--bg-card);
+}
+
+.uda-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(249, 115, 22, 0.1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.uda-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f97316;
+  font-size: 14px;
+}
+
+.uda-badge {
+  background: #f97316;
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.uda-toggle {
+  color: #f97316;
+  font-size: 12px;
+}
+
+.uda-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.uda-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.uda-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.uda-code {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.uda-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.uda-payload {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.uda-prop {
+  font-size: 12px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.uda-prop em {
+  font-style: normal;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.uda-prop-more {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+}
+
+.uda-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-uda-create {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-uda-create:hover { opacity: 0.85; }
+
+.btn-uda-ignore {
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-uda-ignore:hover { background: var(--bg-hover); }

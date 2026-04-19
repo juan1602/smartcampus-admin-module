@@ -6,9 +6,11 @@ import com.uis.smartcampus.admin_module.model.Device;
 import com.uis.smartcampus.admin_module.model.DigitalTwin;
 import com.uis.smartcampus.admin_module.model.TelemetryRecord;
 import com.uis.smartcampus.admin_module.model.TwinUpdateMessage;
+import com.uis.smartcampus.admin_module.model.UnknownDeviceEvent;
 import com.uis.smartcampus.admin_module.repository.DeviceRepository;
 import com.uis.smartcampus.admin_module.repository.DigitalTwinRepository;
 import com.uis.smartcampus.admin_module.repository.TelemetryRecordRepository;
+import com.uis.smartcampus.admin_module.repository.UnknownDeviceEventRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +32,7 @@ public class TelemetryService {
     private final DeviceRepository deviceRepository;
     private final DigitalTwinRepository twinRepository;
     private final TelemetryRecordRepository telemetryRecordRepository;
+    private final UnknownDeviceEventRepository unknownDeviceEventRepository;
     private final MqttPublisherService mqttPublisherService;
     private final AlertService alertService;
     private final SimpMessagingTemplate wsTemplate;
@@ -40,6 +43,23 @@ public class TelemetryService {
     public void processTelemetry(String deviceCode, Map<String, Object> data) {
 
     try {
+
+        // Si el dispositivo no está registrado, guardar evento y notificar
+        if (!deviceRepository.findByCode(deviceCode).isPresent()) {
+            if (!unknownDeviceEventRepository.existsByDeviceCodeAndIgnoredFalse(deviceCode)) {
+                String rawJson = mapper.writeValueAsString(data);
+                UnknownDeviceEvent event = UnknownDeviceEvent.builder()
+                        .deviceCode(deviceCode)
+                        .telemetryJson(rawJson)
+                        .receivedAt(java.time.LocalDateTime.now())
+                        .build();
+                unknownDeviceEventRepository.save(event);
+                wsTemplate.convertAndSend("/topic/unknown-devices",
+                        Map.of("deviceCode", deviceCode, "telemetryJson", rawJson));
+                System.out.println("⚠️ Dispositivo desconocido detectado: " + deviceCode);
+            }
+            return;
+        }
 
         Device device = deviceRepository.findByCode(deviceCode)
                 .orElseThrow(() -> new RuntimeException("Device not found"));

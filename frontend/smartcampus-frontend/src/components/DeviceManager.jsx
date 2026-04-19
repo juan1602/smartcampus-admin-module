@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { createDevice, updateDevice, deleteDevice, assignProperties, updatePropertyValue, toggleMaintenance } from "../services/deviceService";
 import { createProperty } from "../services/propertyService";
+import UnknownDevicesAlert from "./UnknownDevicesAlert";
 import "./DeviceManager.css";
 import yaml from "js-yaml";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight, isAdmin }) {
+export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight, isAdmin, unknownDeviceSignal }) {
 
   // ── Estados del formulario ──────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -260,6 +261,13 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     }
   };
 
+  const handleCreateFromUnknown = ({ code }) => {
+    setFormData(prev => ({ ...prev, code }));
+    setEditingId(null);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleToggleMaintenance = async (device) => {
     const isInMaintenance = device.status === "MAINTENANCE";
     const msg = isInMaintenance
@@ -499,6 +507,14 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
           )}
         </div>
       </div>
+
+      {/* Alerta de dispositivos desconocidos — solo ADMIN */}
+      {isAdmin && (
+        <UnknownDevicesAlert
+          onCreateDevice={handleCreateFromUnknown}
+          newEventSignal={unknownDeviceSignal}
+        />
+      )}
 
       {/* Barra de filtros */}
       <div className="filter-bar">

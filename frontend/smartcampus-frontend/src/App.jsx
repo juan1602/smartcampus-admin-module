@@ -65,6 +65,7 @@ function App() {
 
   // ── WebSocket — Digital Twin en tiempo real ─────────────────────────────────
   const [liveTwinIds, setLiveTwinIds] = useState(new Set());
+  const [unknownDeviceSignal, setUnknownDeviceSignal] = useState(null);
 
   useTwinWebSocket((msg) => {
     // Actualiza el twin correspondiente en el estado sin hacer fetch
@@ -82,6 +83,15 @@ function App() {
         return next;
       });
     }, 4000);
+  }, (msg) => {
+    // Dispositivo desconocido detectado — señal para que DeviceManager recargue
+    setUnknownDeviceSignal(msg);
+    addToast({
+      type: "warning",
+      icon: "⚠️",
+      title: "Dispositivo desconocido",
+      message: `Se recibió telemetría de "${msg.deviceCode}" que no está registrado`
+    });
   });
 
   // ── Alertas / toasts ────────────────────────────────────────────────────────
@@ -330,6 +340,7 @@ useEffect(() => {
           highlightedDeviceId={highlightedDeviceId}
           onClearHighlight={() => setHighlightedDeviceId(null)}
           isAdmin={isAdmin}
+          unknownDeviceSignal={unknownDeviceSignal}
         />
       )
     },
