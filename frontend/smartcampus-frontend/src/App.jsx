@@ -11,6 +11,7 @@ import ToastAlert from "./components/ToastAlert";
 import LoginPage from "./components/LoginPage";
 import AlertRulesManager from "./components/AlertRulesManager";
 import AnalyticsPanel from "./components/AnalyticsPanel";
+import UserManager from "./components/UserManager";
 import { useTwinWebSocket } from "./services/useTwinWebSocket";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
@@ -348,10 +349,16 @@ useEffect(() => {
       label: `Analítica`,
       content: <AnalyticsPanel devices={devices} />
     },
-    ...(isAdmin ? [{
-      label: `Alertas`,
-      content: <AlertRulesManager />
-    }] : [])
+    ...(isAdmin ? [
+      {
+        label: `Alertas`,
+        content: <AlertRulesManager />
+      },
+      {
+        label: `Usuarios`,
+        content: <UserManager />
+      }
+    ] : [])
   ];
 
   // ── Render ──────────────────────────────────────────────────────────────────

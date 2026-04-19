@@ -610,6 +610,4 @@ Para autenticarse en Swagger:
 3. Hacer clic en **Authorize** e ingresar: `Bearer <token>`
 
 ---
-
-*Documentación generada el 19 de abril de 2026*  
 *SmartCampus UIS — Proyecto de Grado*

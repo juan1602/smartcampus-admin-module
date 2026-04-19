@@ -53,8 +53,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/telemetry/**").hasAnyRole("ADMIN", "VIEWER")
                 .requestMatchers(HttpMethod.GET, "/twins/**").hasAnyRole("ADMIN", "VIEWER")
 
-                // Reglas de alerta — solo ADMIN
+                // Reglas de alerta y usuarios — solo ADMIN
                 .requestMatchers("/alert-rules/**").hasRole("ADMIN")
+                .requestMatchers("/users/**").hasRole("ADMIN")
 
                 // Escritura — solo ADMIN
                 .requestMatchers(HttpMethod.POST,   "/devices/**").hasRole("ADMIN")
