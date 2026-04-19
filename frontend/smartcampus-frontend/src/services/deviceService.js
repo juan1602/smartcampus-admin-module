@@ -21,3 +21,5 @@ export const updatePropertyValue = (deviceId, propertyName, value) => {
     value
   });
 };
+
+export const toggleMaintenance = (id) => api.post(`/devices/${id}/maintenance`);

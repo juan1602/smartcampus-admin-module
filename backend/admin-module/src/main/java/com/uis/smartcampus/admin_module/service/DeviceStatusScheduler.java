@@ -31,6 +31,9 @@ public class DeviceStatusScheduler {
                 continue;
             }
 
+            // No tocar dispositivos en mantenimiento
+            if ("MAINTENANCE".equalsIgnoreCase(device.getStatus())) continue;
+
             long seconds = Duration
                     .between(device.getLastSeen(), now)
                     .getSeconds();

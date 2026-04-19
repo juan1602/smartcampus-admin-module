@@ -667,6 +667,28 @@
 .list-actions .btn-clone { background: #f59e0b; }
 .list-actions .btn-delete { background: #ef4444; }
 .list-actions .btn-info  { background: var(--bg-card); border: 1px solid var(--border-color); }
+.list-actions .btn-maintenance     { background: #f97316; color: #fff; }
+.list-actions .btn-maintenance-off { background: #22c55e; color: #fff; }
+
+/* ── Modo mantenimiento ────────────────────────────────────────────────────── */
+.btn-maintenance,
+.btn-maintenance-off {
+  padding: 0.55rem 0.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-maintenance     { background: #f97316; color: #fff; }
+.btn-maintenance-off { background: #22c55e; color: #fff; }
+
+.device-status.maintenance {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.12);
+}
 
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty-state {

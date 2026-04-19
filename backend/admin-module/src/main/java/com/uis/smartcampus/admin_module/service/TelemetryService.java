@@ -47,7 +47,10 @@ public class TelemetryService {
         device.setLastSeen(LocalDateTime.now());
         device.setUpdatedAt(LocalDateTime.now());
 
-        device.setStatus("ONLINE");
+        // No cambiar estado si está en mantenimiento
+        if (!"MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
+            device.setStatus("ONLINE");
+        }
         deviceRepository.save(device);
 
         // 🔹 obtener propiedades válidas del dispositivo
@@ -85,21 +88,23 @@ public class TelemetryService {
         // 🔔 Verificar umbrales y enviar alertas si corresponde
         alertService.checkAndAlert(deviceCode, filteredData);
 
-        Object batteryObject = filteredData.get("battery_level");
-        if (batteryObject != null) {
-            double batteryLevel = Double.parseDouble(batteryObject.toString());
-            if (batteryLevel == 0) {
-                device.setStatus("OFFLINE");
-            } else if (batteryLevel < 5) {
-                device.setStatus("WARNING");
-                System.out.println("⚠️ WARNING: Battery level critically low for device " + deviceCode);
-            } else if (batteryLevel < 20) {
-                device.setStatus("LOW_BATTERY");
+        if (!"MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
+            Object batteryObject = filteredData.get("battery_level");
+            if (batteryObject != null) {
+                double batteryLevel = Double.parseDouble(batteryObject.toString());
+                if (batteryLevel == 0) {
+                    device.setStatus("OFFLINE");
+                } else if (batteryLevel < 5) {
+                    device.setStatus("WARNING");
+                    System.out.println("⚠️ WARNING: Battery level critically low for device " + deviceCode);
+                } else if (batteryLevel < 20) {
+                    device.setStatus("LOW_BATTERY");
+                } else {
+                    device.setStatus("ONLINE");
+                }
             } else {
                 device.setStatus("ONLINE");
             }
-        } else {
-            device.setStatus("ONLINE");
         }
 
         // Guardar historial

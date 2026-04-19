@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { createDevice, updateDevice, deleteDevice, assignProperties, updatePropertyValue } from "../services/deviceService";
+import { createDevice, updateDevice, deleteDevice, assignProperties, updatePropertyValue, toggleMaintenance } from "../services/deviceService";
 import { createProperty } from "../services/propertyService";
 import "./DeviceManager.css";
 import yaml from "js-yaml";
@@ -255,6 +255,21 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleToggleMaintenance = async (device) => {
+    const isInMaintenance = device.status === "MAINTENANCE";
+    const msg = isInMaintenance
+      ? `¿Quitar "${device.code}" del modo mantenimiento?`
+      : `¿Poner "${device.code}" en modo mantenimiento? El scheduler no cambiará su estado mientras esté en mantenimiento.`;
+    if (!window.confirm(msg)) return;
+    try {
+      await toggleMaintenance(device.id);
+      setMessage(isInMaintenance ? "Dispositivo reactivado" : "Dispositivo en mantenimiento");
+      onRefresh();
+    } catch (error) {
+      setMessage("Error: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -679,6 +694,14 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                 <div className="device-actions">
                   {isAdmin && <button onClick={() => handleEdit(device)} className="btn-edit">✏️ Editar</button>}
                   {isAdmin && <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋 Clonar</button>}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleToggleMaintenance(device)}
+                      className={device.status === "MAINTENANCE" ? "btn-maintenance-off" : "btn-maintenance"}
+                    >
+                      {device.status === "MAINTENANCE" ? "▶ Reactivar" : "🔧 Mantenimiento"}
+                    </button>
+                  )}
                   {isAdmin && <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️ Eliminar</button>}
                   <button onClick={() => setInfoDevice(device)} className="btn-info">ℹ️ Información</button>
                 </div>
@@ -726,6 +749,15 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                       <div className="list-actions">
                         {isAdmin && <button onClick={() => handleEdit(device)} className="btn-edit">✏️</button>}
                         {isAdmin && <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋</button>}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleToggleMaintenance(device)}
+                            className={device.status === "MAINTENANCE" ? "btn-maintenance-off" : "btn-maintenance"}
+                            title={device.status === "MAINTENANCE" ? "Quitar mantenimiento" : "Poner en mantenimiento"}
+                          >
+                            {device.status === "MAINTENANCE" ? "▶" : "🔧"}
+                          </button>
+                        )}
                         {isAdmin && <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️</button>}
                         <button onClick={() => setInfoDevice(device)} className="btn-info">ℹ️</button>
                       </div>

@@ -60,6 +60,12 @@ public class DeviceController {
         return service.assignComponents(deviceId, componentIds);
     }
 
+    @PostMapping("/{id}/maintenance")
+    public ResponseEntity<?> toggleMaintenance(@PathVariable Long id) {
+        service.toggleMaintenance(id);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         service.delete(id);

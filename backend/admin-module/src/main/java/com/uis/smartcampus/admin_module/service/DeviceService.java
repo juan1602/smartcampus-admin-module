@@ -206,6 +206,18 @@ public class DeviceService {
         return stats;
     }
 
+    public void toggleMaintenance(Long id) {
+        Device device = repository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Device not found: " + id));
+
+        if ("MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
+            device.setStatus("OFFLINE");
+        } else {
+            device.setStatus("MAINTENANCE");
+        }
+        repository.save(device);
+    }
+
     public void delete(Long id) {
         repository.deleteById(id);
     }
