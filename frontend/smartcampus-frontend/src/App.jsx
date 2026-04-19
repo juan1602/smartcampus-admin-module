@@ -8,10 +8,26 @@ import DeviceManager from "./components/DeviceManager";
 import PropertyManager from "./components/PropertyManager";
 import Tabs from "./components/Tabs";
 import ToastAlert from "./components/ToastAlert";
+import LoginPage from "./components/LoginPage";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
 
 function App() {
+
+  // ── Autenticación ───────────────────────────────────────────────────────────
+  const [role, setRole] = useState(localStorage.getItem("role") || null);
+  const isAdmin = role === "ADMIN";
+
+  const handleLogin = (userRole) => setRole(userRole);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
+    setRole(null);
+  };
+
+  if (!role) return <LoginPage onLogin={handleLogin} />;
 
   // ── Estados globales de datos ───────────────────────────────────────────────
   const [highlightedDeviceId, setHighlightedDeviceId] = useState(null);
@@ -285,6 +301,7 @@ useEffect(() => {
           onFormOpen={setIsFormOpen}
           highlightedDeviceId={highlightedDeviceId}
           onClearHighlight={() => setHighlightedDeviceId(null)}
+          isAdmin={isAdmin}
         />
       )
     },
@@ -294,6 +311,7 @@ useEffect(() => {
         <PropertyManager
           properties={properties}
           onRefresh={loadData}
+          isAdmin={isAdmin}
         />
       )
     },
@@ -316,8 +334,18 @@ useEffect(() => {
             <p>Panel de Control y Gestión</p>
           </div>
           <div className="header-actions">
+            <span style={{
+              fontSize: 12, fontWeight: 700, padding: "4px 10px",
+              borderRadius: 999, background: isAdmin ? "rgba(0,108,53,0.15)" : "rgba(99,102,241,0.15)",
+              color: isAdmin ? "var(--color-primary)" : "#818cf8"
+            }}>
+              {localStorage.getItem("username")} · {role}
+            </span>
             <button onClick={loadData} className="btn-refresh" disabled={loading}>
               {loading ? "Actualizando..." : "🔄 Actualizar"}
+            </button>
+            <button onClick={handleLogout} className="btn-refresh" style={{ background: "transparent", color: "#ef4444", border: "1px solid #ef4444" }}>
+              Cerrar sesión
             </button>
           </div>
         </div>

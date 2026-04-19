@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createProperty, updateProperty, deleteProperty } from "../services/propertyService";
 import "./PropertyManager.css";
 
-export default function PropertyManager({ properties, onRefresh, onFormOpen }) {
+export default function PropertyManager({ properties, onRefresh, onFormOpen, isAdmin }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: "", unit: "", description: "", writable: false });
@@ -73,9 +73,11 @@ export default function PropertyManager({ properties, onRefresh, onFormOpen }) {
     <div className="property-manager">
       <div className="property-header">
         <h2>Gestionar Propiedades ({properties.length})</h2>
-        <button onClick={() => { setShowForm(!showForm); onFormOpen?.(!showForm); }} className="btn-primary">
-          {showForm ? "Cancelar" : "+ Nueva Propiedad"}
-        </button>
+        {isAdmin && (
+          <button onClick={() => { setShowForm(!showForm); onFormOpen?.(!showForm); }} className="btn-primary">
+            {showForm ? "Cancelar" : "+ Nueva Propiedad"}
+          </button>
+        )}
       </div>
 
       {message && (
@@ -84,7 +86,7 @@ export default function PropertyManager({ properties, onRefresh, onFormOpen }) {
         </div>
       )}
 
-      {showForm && (
+      {showForm && isAdmin && (
         <form onSubmit={handleSubmit} className="property-form">
           <div className="form-group">
             <label>Nombre *</label>
@@ -144,14 +146,16 @@ export default function PropertyManager({ properties, onRefresh, onFormOpen }) {
                 {prop.description && <p className="description">{prop.description}</p>}
                 <p className="writable">Editable: {prop.writable ? "Sí" : "No"}</p>
               </div>
-              <div className="property-actions">
-                <button onClick={() => handleEdit(prop)} className="btn-edit">
-                  ✏️ Editar
-                </button>
-                <button onClick={() => handleDelete(prop.id)} className="btn-delete">
-                  🗑️ Eliminar
-                </button>
-              </div>
+              {isAdmin && (
+                <div className="property-actions">
+                  <button onClick={() => handleEdit(prop)} className="btn-edit">
+                    ✏️ Editar
+                  </button>
+                  <button onClick={() => handleDelete(prop.id)} className="btn-delete">
+                    🗑️ Eliminar
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

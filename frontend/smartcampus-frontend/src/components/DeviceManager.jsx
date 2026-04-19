@@ -4,7 +4,7 @@ import { createProperty } from "../services/propertyService";
 import "./DeviceManager.css";
 import yaml from "js-yaml";
 
-export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight }) {
+export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight, isAdmin }) {
 
   // ── Estados del formulario ──────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -387,12 +387,14 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       {/* Encabezado */}
       <div className="device-header">
         <h2>Gestionar Dispositivos ({filteredDevices.length}{hasActiveFilters ? ` / ${devices.length}` : ""})</h2>
-        <button type="button" onClick={() => {
-          setShowForm(!showForm);
-          if (showForm) setInfoDevice(null);
-        }} className="btn-primary">
-          {showForm ? "✕ Cancelar" : "+ Nuevo Dispositivo"}
-        </button>
+        {isAdmin && (
+          <button type="button" onClick={() => {
+            setShowForm(!showForm);
+            if (showForm) setInfoDevice(null);
+          }} className="btn-primary">
+            {showForm ? "✕ Cancelar" : "+ Nuevo Dispositivo"}
+          </button>
+        )}
       </div>
 
       {/* Barra de filtros */}
@@ -437,7 +439,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       )}
 
       {/* Formulario de creación/edición */}
-      {showForm && (
+      {showForm && isAdmin && (
         <form onSubmit={handleSubmit} className="device-form">
           <div className="form-section">
             <h3>Información del Dispositivo</h3>
@@ -675,9 +677,9 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                 </div>
 
                 <div className="device-actions">
-                  <button onClick={() => handleEdit(device)} className="btn-edit">✏️ Editar</button>
-                  <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋 Clonar</button>
-                  <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️ Eliminar</button>
+                  {isAdmin && <button onClick={() => handleEdit(device)} className="btn-edit">✏️ Editar</button>}
+                  {isAdmin && <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋 Clonar</button>}
+                  {isAdmin && <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️ Eliminar</button>}
                   <button onClick={() => setInfoDevice(device)} className="btn-info">ℹ️ Información</button>
                 </div>
               </div>
@@ -722,9 +724,9 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                     <td><span className={`device-status ${device.status?.toLowerCase()}`}>{device.status}</span></td>
                     <td>
                       <div className="list-actions">
-                        <button onClick={() => handleEdit(device)} className="btn-edit">✏️</button>
-                        <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋</button>
-                        <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️</button>
+                        {isAdmin && <button onClick={() => handleEdit(device)} className="btn-edit">✏️</button>}
+                        {isAdmin && <button onClick={() => handleClone(device)} className="btn-clone" disabled={loading}>📋</button>}
+                        {isAdmin && <button onClick={() => handleDelete(device.id)} className="btn-delete">🗑️</button>}
                         <button onClick={() => setInfoDevice(device)} className="btn-info">ℹ️</button>
                       </div>
                     </td>
@@ -827,7 +829,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
             {/* Footer del modal */}
             <div className="device-modal-footer">
               <button className="btn-modal-close" onClick={() => setInfoDevice(null)}>Cerrar</button>
-              <button className="btn-modal-save" onClick={handleSaveValues}>💾 Guardar cambios</button>
+              {isAdmin && <button className="btn-modal-save" onClick={handleSaveValues}>💾 Guardar cambios</button>}
             </div>
 
           </div>
