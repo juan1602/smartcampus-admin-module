@@ -35,6 +35,9 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
 
+                // Preflight CORS — siempre permitido
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                 // Login — público
                 .requestMatchers("/auth/**").permitAll()
 
