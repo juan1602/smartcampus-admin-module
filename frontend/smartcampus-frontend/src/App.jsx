@@ -12,6 +12,7 @@ import LoginPage from "./components/LoginPage";
 import AlertRulesManager from "./components/AlertRulesManager";
 import AnalyticsPanel from "./components/AnalyticsPanel";
 import UserManager from "./components/UserManager";
+import KpiDashboard from "./components/KpiDashboard";
 import { useTwinWebSocket } from "./services/useTwinWebSocket";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
@@ -282,6 +283,10 @@ useEffect(() => {
   // ── Definición de tabs ─────────────────────────────────────────────────────
   const tabs = [
     {
+      label: `KPIs`,
+      content: <KpiDashboard liveTwinIds={liveTwinIds} />
+    },
+    {
       label: `Dashboard`,
       content: (
         <div className="dashboard-grid">
@@ -291,7 +296,7 @@ useEffect(() => {
             data={devices.slice(0, 5)}
             type="device"
             onDeviceClick={(device) => {
-              setActiveTab(1);
+              setActiveTab(2);
               setHighlightedDeviceId(device.id);
             }}
             onOpen={() => setShowDevicesModal(true)}

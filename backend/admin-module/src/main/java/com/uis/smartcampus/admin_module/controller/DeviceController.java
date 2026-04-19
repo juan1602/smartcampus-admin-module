@@ -26,7 +26,12 @@ public class DeviceController {
 
     private final DeviceService service;
 
-     @GetMapping
+    @GetMapping("/stats")
+    public Map<String, Object> getStats() {
+        return service.getStats();
+    }
+
+    @GetMapping
     public List<Device> getAll() {
         return service.findAll();
     }

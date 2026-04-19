@@ -1,8 +1,10 @@
 package com.uis.smartcampus.admin_module.service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -136,6 +138,52 @@ public class DeviceService {
 
         twinRepository.save(twin);
 
+    }
+
+    public Map<String, Object> getStats() {
+        List<Device> devices = repository.findAll();
+        long totalProperties = propertyRepository.count();
+        long totalTwins     = twinRepository.count();
+
+        long online  = devices.stream().filter(d -> "ONLINE".equalsIgnoreCase(d.getStatus())).count();
+        long offline = devices.stream().filter(d -> "OFFLINE".equalsIgnoreCase(d.getStatus())).count();
+        long error   = devices.stream().filter(d -> "ERROR".equalsIgnoreCase(d.getStatus())).count();
+
+        // Dispositivo visto más recientemente
+        Map<String, Object> lastSeen = devices.stream()
+            .filter(d -> d.getLastSeen() != null)
+            .max(Comparator.comparing(Device::getLastSeen))
+            .map(d -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("name", d.getName() != null ? d.getName() : d.getCode());
+                m.put("code", d.getCode());
+                m.put("lastSeen", d.getLastSeen().toString());
+                m.put("status", d.getStatus());
+                return m;
+            }).orElse(null);
+
+        // Conteo por tipo de dispositivo
+        Map<String, Long> byType = devices.stream()
+            .filter(d -> d.getType() != null)
+            .collect(Collectors.groupingBy(d -> d.getType().toUpperCase(), Collectors.counting()));
+
+        // Conteo por namespace (agrupación lógica)
+        Map<String, Long> byNamespace = devices.stream()
+            .filter(d -> d.getNamespace() != null && !d.getNamespace().isBlank())
+            .collect(Collectors.groupingBy(Device::getNamespace, Collectors.counting()));
+
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("totalDevices",    devices.size());
+        stats.put("onlineCount",     online);
+        stats.put("offlineCount",    offline);
+        stats.put("errorCount",      error);
+        stats.put("totalTwins",      totalTwins);
+        stats.put("totalProperties", totalProperties);
+        stats.put("lastSeenDevice",  lastSeen);
+        stats.put("byType",          byType);
+        stats.put("byNamespace",     byNamespace);
+
+        return stats;
     }
 
     public void delete(Long id) {
