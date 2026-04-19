@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDevices } from "./services/deviceService";
 import { getTwins } from "./services/twinService";
 import { getTelemetry, getTelemetryByDevice } from "./services/telemetryService";
@@ -7,6 +7,7 @@ import DataCard from "./components/DataCard";
 import DeviceManager from "./components/DeviceManager";
 import PropertyManager from "./components/PropertyManager";
 import Tabs from "./components/Tabs";
+import ToastAlert from "./components/ToastAlert";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
 
@@ -43,7 +44,76 @@ function App() {
   // ── Estado para pausar polling durante edición ───────────────────────────────
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // ── Carga inicial y polling cada 10 segundos (pausa si hay formulario abierto) 
+  // ── Alertas / toasts ────────────────────────────────────────────────────────
+  const [toasts, setToasts] = useState([]);
+  const shownAlerts = useRef(new Set());
+
+  const addToast = (toast) => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { ...toast, id }]);
+    setTimeout(() => removeToast(id), 7000);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  // ── Detección de umbrales en telemetría ────────────────────────────────────
+  useEffect(() => {
+    if (telemetry.length === 0) return;
+
+    // Obtener el registro más reciente por dispositivo
+    const latestByDevice = {};
+    telemetry.forEach(record => {
+      const code = record.device?.code;
+      if (!code) return;
+      if (!latestByDevice[code] || new Date(record.timestamp) > new Date(latestByDevice[code].timestamp)) {
+        latestByDevice[code] = record;
+      }
+    });
+
+    Object.entries(latestByDevice).forEach(([deviceCode, record]) => {
+      try {
+        const data = JSON.parse(record.telemetryJson || "{}");
+
+        // Temperatura > 80°C
+        if (data.temperature !== undefined) {
+          const temp = parseFloat(data.temperature);
+          const key = `${deviceCode}_temp_high`;
+          if (temp > 80 && !shownAlerts.current.has(key)) {
+            shownAlerts.current.add(key);
+            addToast({
+              type: "critical",
+              icon: "🌡️",
+              title: "Temperatura Crítica",
+              message: `Dispositivo ${deviceCode}: ${temp.toFixed(1)}°C (umbral: 80°C)`
+            });
+          } else if (temp <= 80) {
+            shownAlerts.current.delete(key);
+          }
+        }
+
+        // Batería < 10%
+        if (data.battery_level !== undefined) {
+          const bat = parseFloat(data.battery_level);
+          const key = `${deviceCode}_bat_low`;
+          if (bat < 10 && !shownAlerts.current.has(key)) {
+            shownAlerts.current.add(key);
+            addToast({
+              type: "warning",
+              icon: "🔋",
+              title: "Batería Baja",
+              message: `Dispositivo ${deviceCode}: ${bat.toFixed(1)}% (umbral: 10%)`
+            });
+          } else if (bat >= 10) {
+            shownAlerts.current.delete(key);
+          }
+        }
+      } catch {}
+    });
+  }, [telemetry]);
+
+  // ── Carga inicial y polling cada 10 segundos (pausa si hay formulario abierto)
   useEffect(() => {
   loadData();
 }, []);
@@ -587,6 +657,8 @@ useEffect(() => {
       <footer className="app-footer">
         <p>Smart Campus UIS © 2026 | Desarrollado por el equipo de proyecto de grado</p>
       </footer>
+
+      <ToastAlert toasts={toasts} onRemove={removeToast} />
 
     </div>
   );

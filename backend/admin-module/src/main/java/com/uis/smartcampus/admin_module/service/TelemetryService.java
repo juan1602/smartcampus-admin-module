@@ -29,6 +29,7 @@ public class TelemetryService {
     private final DigitalTwinRepository twinRepository;
     private final TelemetryRecordRepository telemetryRecordRepository;
     private final MqttPublisherService mqttPublisherService;
+    private final AlertService alertService;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -77,6 +78,10 @@ public class TelemetryService {
             return;
 
         }
+
+        // 🔔 Verificar umbrales y enviar alertas si corresponde
+        alertService.checkAndAlert(deviceCode, filteredData);
+
         Object batteryObject = filteredData.get("battery_level");
         if (batteryObject != null) {
             double batteryLevel = Double.parseDouble(batteryObject.toString());
