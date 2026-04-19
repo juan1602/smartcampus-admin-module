@@ -690,6 +690,28 @@
   background: rgba(249, 115, 22, 0.12);
 }
 
+/* ── Botones exportar ──────────────────────────────────────────────────────── */
+.btn-export {
+  padding: 7px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-export:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-csv { background: #10b981; color: #fff; }
+.btn-pdf { background: #ef4444; color: #fff; }
+
+.btn-csv:hover:not(:disabled),
+.btn-pdf:hover:not(:disabled) { opacity: 0.85; }
+
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty-state {
   text-align: center;

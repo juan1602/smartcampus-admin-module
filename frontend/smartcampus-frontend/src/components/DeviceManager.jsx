@@ -3,6 +3,8 @@ import { createDevice, updateDevice, deleteDevice, assignProperties, updatePrope
 import { createProperty } from "../services/propertyService";
 import "./DeviceManager.css";
 import yaml from "js-yaml";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight, isAdmin }) {
 
@@ -379,6 +381,74 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     }
   };
 
+  // ── Exportación ────────────────────────────────────────────────────────────
+
+  const exportCSV = () => {
+    const header = ["Código", "Nombre", "Tipo", "Namespace", "Ubicación", "Tags", "Estado", "Última vez visto"];
+    const rows = filteredDevices.map(d => [
+      d.code,
+      d.name || "-",
+      d.type || "-",
+      d.namespace || "-",
+      d.location || "-",
+      d.tags || "-",
+      d.status || "-",
+      d.lastSeen ? new Date(d.lastSeen).toLocaleString() : "-"
+    ]);
+    const lines = [header.join(","), ...rows.map(r => r.map(v => `"${v}"`).join(","))];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `smartcampus-dispositivos-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    doc.setFontSize(16);
+    doc.setTextColor(0, 108, 53);
+    doc.text("SmartCampus UIS — Inventario de Dispositivos", 14, 16);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Total: ${filteredDevices.length} dispositivo(s)`, 14, 23);
+    doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 28);
+    if (hasActiveFilters) {
+      const filtros = [
+        filterText && `Búsqueda: "${filterText}"`,
+        filterNamespace && `Namespace: ${filterNamespace}`,
+        filterType && `Tipo: ${filterType}`,
+        filterStatus && `Estado: ${filterStatus}`
+      ].filter(Boolean).join(" | ");
+      doc.text(`Filtros: ${filtros}`, 14, 33);
+    }
+
+    const startY = hasActiveFilters ? 38 : 33;
+
+    autoTable(doc, {
+      startY,
+      head: [["Código", "Nombre", "Tipo", "Namespace", "Ubicación", "Tags", "Estado", "Última vez visto"]],
+      body: filteredDevices.map(d => [
+        d.code,
+        d.name || "-",
+        d.type || "-",
+        d.namespace || "-",
+        d.location || "-",
+        d.tags || "-",
+        d.status || "-",
+        d.lastSeen ? new Date(d.lastSeen).toLocaleString() : "-"
+      ]),
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [0, 108, 53], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 250, 245] },
+    });
+
+    doc.save(`smartcampus-dispositivos-${Date.now()}.pdf`);
+  };
+
   // ── Filtrado ────────────────────────────────────────────────────────────────
 
   const namespaceOptions = [...new Set((devices || []).map(d => d.namespace).filter(Boolean))].sort();
@@ -402,14 +472,32 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       {/* Encabezado */}
       <div className="device-header">
         <h2>Gestionar Dispositivos ({filteredDevices.length}{hasActiveFilters ? ` / ${devices.length}` : ""})</h2>
-        {isAdmin && (
-          <button type="button" onClick={() => {
-            setShowForm(!showForm);
-            if (showForm) setInfoDevice(null);
-          }} className="btn-primary">
-            {showForm ? "✕ Cancelar" : "+ Nuevo Dispositivo"}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            className="btn-export btn-csv"
+            onClick={exportCSV}
+            disabled={filteredDevices.length === 0}
+            title="Exportar inventario como CSV"
+          >
+            ⬇ CSV
           </button>
-        )}
+          <button
+            className="btn-export btn-pdf"
+            onClick={exportPDF}
+            disabled={filteredDevices.length === 0}
+            title="Exportar inventario como PDF"
+          >
+            ⬇ PDF
+          </button>
+          {isAdmin && (
+            <button type="button" onClick={() => {
+              setShowForm(!showForm);
+              if (showForm) setInfoDevice(null);
+            }} className="btn-primary">
+              {showForm ? "✕ Cancelar" : "+ Nuevo Dispositivo"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Barra de filtros */}
