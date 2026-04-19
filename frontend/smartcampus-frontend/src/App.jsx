@@ -9,6 +9,7 @@ import PropertyManager from "./components/PropertyManager";
 import Tabs from "./components/Tabs";
 import ToastAlert from "./components/ToastAlert";
 import LoginPage from "./components/LoginPage";
+import AlertRulesManager from "./components/AlertRulesManager";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
 
@@ -318,7 +319,11 @@ useEffect(() => {
       content: (
         <TelemetryCharts devices={devices}/>
       )
-    }
+    },
+    ...(isAdmin ? [{
+      label: `Alertas`,
+      content: <AlertRulesManager />
+    }] : [])
   ];
 
   // ── Render ──────────────────────────────────────────────────────────────────
