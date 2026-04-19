@@ -27,8 +27,6 @@ function App() {
     setRole(null);
   };
 
-  if (!role) return <LoginPage onLogin={handleLogin} />;
-
   // ── Estados globales de datos ───────────────────────────────────────────────
   const [highlightedDeviceId, setHighlightedDeviceId] = useState(null);
   const [devices, setDevices] = useState([]);
@@ -324,6 +322,8 @@ useEffect(() => {
   ];
 
   // ── Render ──────────────────────────────────────────────────────────────────
+  if (!role) return <LoginPage onLogin={handleLogin} />;
+
   return (
     <div className="app-container">
 
