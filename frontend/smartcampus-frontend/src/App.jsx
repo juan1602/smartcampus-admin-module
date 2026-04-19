@@ -10,6 +10,7 @@ import Tabs from "./components/Tabs";
 import ToastAlert from "./components/ToastAlert";
 import LoginPage from "./components/LoginPage";
 import AlertRulesManager from "./components/AlertRulesManager";
+import AnalyticsPanel from "./components/AnalyticsPanel";
 import { useTwinWebSocket } from "./services/useTwinWebSocket";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
@@ -342,6 +343,10 @@ useEffect(() => {
       content: (
         <TelemetryCharts devices={devices}/>
       )
+    },
+    {
+      label: `Analítica`,
+      content: <AnalyticsPanel devices={devices} />
     },
     ...(isAdmin ? [{
       label: `Alertas`,
