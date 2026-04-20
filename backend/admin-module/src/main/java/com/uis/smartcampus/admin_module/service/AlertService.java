@@ -20,7 +20,7 @@ public class AlertService {
 
     // Cooldown: evitar notificaciones repetidas (clave: deviceCode + ruleId)
     private final Map<String, LocalDateTime> lastNotified = new HashMap<>();
-    private static final int COOLDOWN_MINUTES = 5;
+    private static final int COOLDOWN_MINUTES = 2;
 
     public void checkAndAlert(String deviceCode, Map<String, Object> data) {
         List<AlertRule> rules = alertRuleRepository.findByActiveTrue();
