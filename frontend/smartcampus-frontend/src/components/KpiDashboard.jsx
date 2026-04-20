@@ -143,16 +143,14 @@ export default function KpiDashboard({ liveTwinIds }) {
             <StatCard
               label="Activos ahora"
               value={stats.activeCount}
-              sub={stats.totalDevices ? `${((stats.activeCount / stats.totalDevices) * 100).toFixed(0)}% del total` : null}
-              colorClass="card-green"
-              icon="🟢"
-            />
-            <StatCard
-              label="Batería baja / Alerta"
-              value={(stats.lowBatteryCount ?? 0) + (stats.warningCount ?? 0)}
-              sub="requieren atención"
-              colorClass={(stats.lowBatteryCount + stats.warningCount) > 0 ? "card-orange" : "card-gray"}
-              icon="🔋"
+              sub={(() => {
+                const pct = stats.totalDevices ? `${((stats.activeCount / stats.totalDevices) * 100).toFixed(0)}% del total` : null;
+                const alerts = (stats.lowBatteryCount ?? 0) + (stats.warningCount ?? 0);
+                if (alerts > 0) return `${pct} · ${alerts} con alerta`;
+                return pct;
+              })()}
+              colorClass={(stats.lowBatteryCount + stats.warningCount) > 0 ? "card-orange" : "card-green"}
+              icon={(stats.lowBatteryCount + stats.warningCount) > 0 ? "🔋" : "🟢"}
             />
             <StatCard
               label="Offline"
