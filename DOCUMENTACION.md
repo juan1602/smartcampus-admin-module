@@ -41,8 +41,8 @@
 - Mantener un Digital Twin actualizado por cada dispositivo físico
 - Recibir telemetría en tiempo real a través del protocolo MQTT
 - Sincronización bidireccional: aplicar cambios de configuración desde la interfaz hacia el dispositivo físico
-- Enviar alertas automáticas por correo electrónico cuando se superen umbrales configurables
-- Mostrar notificaciones visuales en la interfaz web
+- Configurar reglas de alerta por umbral y recibir notificaciones visuales en tiempo real
+- Mostrar notificaciones emergentes (toasts) cuando se superen los umbrales definidos
 - Permitir la gestión de usuarios con control de acceso por roles
 - Proveer un panel de KPIs y analítica con exportación de datos en CSV y PDF
 - Detectar y gestionar dispositivos desconocidos que envíen telemetría sin estar registrados
@@ -107,7 +107,6 @@
 | Spring Security | 3.3.5 | Autenticación y autorización |
 | Spring Integration MQTT | 3.3.5 | Comunicación con broker MQTT |
 | Spring WebSocket (STOMP) | 3.3.5 | Tiempo real frontend-backend |
-| Spring Mail | 3.3.5 | Envío de alertas por correo |
 | Spring Data JPA | 3.3.5 | Persistencia de datos |
 | MySQL | 8.x | Base de datos relacional |
 | JJWT | 0.11.5 | Generación y validación de tokens JWT |
@@ -135,7 +134,6 @@
 | Vercel | Despliegue del frontend React |
 | HiveMQ Cloud | Broker MQTT (SSL, puerto 8883) |
 | Node-RED | Relay MQTT: recibe en `smartcampus/ack` y publica en `smartcampus/confirm` |
-| Gmail SMTP | Envío de correos de alerta |
 
 ---
 
@@ -357,21 +355,26 @@ Registro de telemetría recibida de dispositivos no registrados en el sistema.
 ```json
 {
   "totalDevices": 3,
-  "onlineCount": 2,
+  "activeCount": 2,
+  "onlineCount": 1,
+  "lowBatteryCount": 1,
+  "warningCount": 0,
   "offlineCount": 1,
   "errorCount": 0,
+  "maintenanceCount": 0,
   "totalTwins": 3,
   "totalProperties": 5,
   "lastSeenDevice": {
     "name": "RPi Lab",
     "code": "RPI-001",
     "lastSeen": "2026-04-19T15:58:33",
-    "status": "ONLINE"
+    "status": "LOW_BATTERY"
   },
   "byType": { "SENSOR": 2, "ACTUATOR": 1 },
   "byNamespace": { "laboratorio": 2, "pasillo": 1 }
 }
 ```
+> `activeCount` = ONLINE + LOW_BATTERY + WARNING (dispositivos que están enviando datos activamente)
 
 #### Propiedades
 | Método | Endpoint | Descripción | Acceso |
@@ -438,11 +441,11 @@ Gestiona el ciclo de vida de los dispositivos:
 - `getStats`: retorna métricas agregadas de la flota (totales, estados, último visto, distribución por tipo y namespace)
 
 #### AlertService
-Gestiona el envío de alertas por correo:
+Gestiona las notificaciones de alerta via WebSocket:
 - Lee las reglas activas desde la BD en cada evaluación
 - Evalúa operadores `GREATER_THAN` y `LESS_THAN`
-- Cooldown configurable (por defecto 30 minutos) por dispositivo por regla para evitar spam
-- Envía correo via Gmail SMTP cuando se cumple una regla
+- Cooldown de 2 minutos por dispositivo por regla (en memoria) para evitar notificaciones repetitivas
+- Cuando se cumple una regla, publica el evento en `/topic/alerts` via WebSocket para que el frontend muestre un toast en tiempo real
 
 #### DeviceStatusScheduler
 Tarea programada (cada 30 segundos) que marca como OFFLINE los dispositivos cuyo `lastSeen` supere los 10 minutos. **Omite dispositivos en estado MAINTENANCE.**
@@ -519,35 +522,46 @@ El sistema usa **STOMP sobre SockJS** para comunicación en tiempo real.
 | Topic | Evento | Payload |
 |---|---|---|
 | `/topic/twins` | Actualización de Digital Twin | `{ deviceCode, twinId, telemetryJson, lastUpdate }` |
+| `/topic/alerts` | Alerta de umbral disparada | `{ deviceCode, property, value, threshold, operator, label }` |
 | `/topic/unknown-devices` | Telemetría de dispositivo no registrado detectada | `{ deviceCode, telemetryJson }` |
 
-El frontend se suscribe a ambos topics al conectarse:
+El frontend se suscribe a los tres topics al conectarse:
 - `/topic/twins` → actualiza el twin en pantalla y muestra badge "En vivo" durante 4 segundos
+- `/topic/alerts` → muestra toast con el detalle de la alerta (dispositivo, propiedad, valor, umbral)
 - `/topic/unknown-devices` → muestra toast de advertencia y recarga el banner de dispositivos desconocidos en la pestaña Dispositivos
 
 ---
 
 ### 5.7 Sistema de Alertas
 
-#### Alertas por correo
-- Remitente: `smartcampus.uis@gmail.com`
-- Destinatario: configurable en `application.properties`
-- Cooldown: 30 minutos por dispositivo por regla
+Las alertas funcionan completamente via WebSocket — no requieren correo electrónico.
 
-#### Reglas creadas por defecto al iniciar
+#### Flujo de una alerta
+1. Al procesar telemetría, `TelemetryService` llama a `AlertService.checkAndAlert(deviceCode, data)`
+2. `AlertService` consulta las reglas activas desde la BD
+3. Evalúa cada regla contra los datos recibidos
+4. Si se cumple la condición y no está en cooldown, publica en `/topic/alerts` via WebSocket
+5. El frontend recibe el mensaje y muestra un toast en pantalla
+
+#### Cooldown
+- 2 minutos por dispositivo por regla (almacenado en memoria del servidor)
+- Se resetea al reiniciar el backend
+
+#### Reglas creadas por defecto al iniciar (`DataInitializer`)
+Solo se insertan si la tabla `alert_rules` está vacía.
+
 | Propiedad | Operador | Umbral | Etiqueta |
 |---|---|---|---|
-| temperature | GREATER_THAN | 80.0 | Temperatura crítica |
-| battery_level | LESS_THAN | 10.0 | Batería baja |
+| temperature | GREATER_THAN | 80.0 | Temperatura crítica (>80°C) |
+| battery_level | LESS_THAN | 10.0 | Batería baja (<10%) |
 
 #### Notificaciones toast en el frontend
-| Tipo | Color | Condición |
+| Tipo | Icono | Condición |
 |---|---|---|
-| Temperatura crítica | Rojo | temperature > 80°C |
-| Batería baja | Naranja | battery_level < 10% |
-| Dispositivo desconocido | Naranja | Llega telemetría de código no registrado |
+| Alerta de umbral | 🔔 | Regla configurada disparada (backend) |
+| Dispositivo desconocido | ⚠️ | Llega telemetría de código no registrado |
 
-Los toasts se auto-cierran a los 7 segundos y no se repiten mientras el valor siga en alerta.
+Los toasts se auto-cierran a los 7 segundos.
 
 ---
 
@@ -583,7 +597,7 @@ Los toasts se auto-cierran a los 7 segundos y no se repiten mientras el valor si
 | `userService.js` | CRUD de usuarios |
 | `kpiService.js` | Métricas agregadas de la flota (`GET /devices/stats`) |
 | `unknownDeviceService.js` | Consulta e ignorar dispositivos desconocidos |
-| `useTwinWebSocket.js` | Hook React: conecta via SockJS+STOMP, suscribe a `/topic/twins` y `/topic/unknown-devices` |
+| `useTwinWebSocket.js` | Hook React: conecta via SockJS+STOMP, suscribe a `/topic/twins`, `/topic/alerts` y `/topic/unknown-devices` |
 
 ### 6.3 Funcionalidades por Rol
 
@@ -623,7 +637,7 @@ El administrador puede editar valores de propiedades marcadas como "editables" d
 Recepción de datos via MQTT con actualización del Digital Twin en tiempo real via WebSocket. El frontend muestra el badge "En vivo" cuando llegan datos nuevos y lo oculta tras 4 segundos.
 
 ### 5. Sistema de alertas automáticas
-Alertas configurables por umbral (GREATER_THAN / LESS_THAN) desde la interfaz. Envío de correo electrónico via Gmail con cooldown de 30 minutos por dispositivo por regla. Notificaciones visuales (toasts) en la app que no se repiten mientras el valor siga en alerta.
+Reglas configurables por propiedad, operador (GREATER_THAN / LESS_THAN) y umbral desde la pestaña "Alertas". Cuando el backend recibe telemetría y se cumple una regla activa, envía la alerta en tiempo real al frontend via WebSocket (`/topic/alerts`) con un cooldown de 2 minutos por dispositivo por regla. El frontend muestra un toast con el nombre del dispositivo, la propiedad afectada, el valor y el umbral configurado.
 
 ### 6. Autenticación JWT y control de acceso por roles
 Login con JWT de 24 horas firmado con HS256. Dos roles: ADMIN (acceso total) y VIEWER (solo lectura). Los botones y pestañas de escritura se ocultan automáticamente al VIEWER. El token expirado redirige al login automáticamente.
@@ -635,7 +649,7 @@ Gráficas de temperatura, humedad y batería con Chart.js. Filtro por dispositiv
 Estadísticas por dispositivo y propiedad (mínimo, promedio, máximo, cantidad de registros). Filtros por dispositivo y rango de fechas. Exportación a CSV y PDF con tabla de estadísticas y detalle de registros.
 
 ### 9. Dashboard de KPIs
-Panel de métricas de administración integrado en el Dashboard: total de dispositivos, conteo por estado (ONLINE/OFFLINE/ERROR), total de Digital Twins activos, total de propiedades registradas, último dispositivo activo con tiempo relativo, barra de estado de la flota, distribución por tipo y namespace. Se actualiza cada 30 segundos y reactivamente al recibir telemetría en vivo.
+Panel de métricas de administración integrado en el Dashboard: total de dispositivos, **activos ahora** (ONLINE + LOW_BATTERY + WARNING) con nota si hay dispositivos con alerta de batería, offline, con error, total de Digital Twins activos, total de propiedades registradas, último dispositivo activo con tiempo relativo, barra de estado de la flota con todos los estados diferenciados por color (verde online, amarillo batería baja, naranja warning, rojo error, morado mantenimiento, gris offline), distribución por tipo y namespace. Se actualiza cada 30 segundos y reactivamente al recibir telemetría en vivo.
 
 ### 10. Gestión de usuarios
 Interfaz para crear, editar y eliminar usuarios del sistema con asignación de rol. Muestra indicador "Tú" en el usuario activo y previene la auto-eliminación. Las contraseñas se encriptan con BCrypt. Solo accesible por ADMIN.
@@ -687,18 +701,6 @@ spring.jpa.hibernate.ddl-auto=update
 # JWT
 jwt.secret=smartcampus-uis-proyecto-grado-secret-key-2026-muy-larga
 jwt.expiration-ms=86400000
-
-# Correo (Gmail SMTP)
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=smartcampus.uis@gmail.com
-spring.mail.password=<app-password>
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
-
-# Alertas
-alert.mail.recipient=smartcampus.uis@gmail.com
-alert.cooldown.minutes=30
 
 # MQTT — HiveMQ Cloud
 mqtt.broker=ssl://<host>.hivemq.cloud:8883
