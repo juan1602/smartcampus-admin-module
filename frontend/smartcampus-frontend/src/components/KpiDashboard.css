@@ -149,9 +149,12 @@
   background: var(--bg-hover);
 }
 
-.bar-online  { background: #22c55e; transition: width 0.4s; }
-.bar-error   { background: #ef4444; transition: width 0.4s; }
-.bar-offline { background: #6b7280; transition: width 0.4s; }
+.bar-online       { background: #22c55e; transition: width 0.4s; }
+.bar-lowbattery   { background: #f59e0b; transition: width 0.4s; }
+.bar-warning      { background: #fb923c; transition: width 0.4s; }
+.bar-error        { background: #ef4444; transition: width 0.4s; }
+.bar-maintenance  { background: #818cf8; transition: width 0.4s; }
+.bar-offline      { background: #6b7280; transition: width 0.4s; }
 
 .kpi-statusbar-legend {
   display: flex;
@@ -160,7 +163,11 @@
   font-size: 12px;
 }
 
-.leg-online  { color: #22c55e; font-weight: 600; }
+.leg-online       { color: #22c55e; font-weight: 600; }
+.leg-lowbattery   { color: #f59e0b; font-weight: 600; }
+.leg-warning      { color: #fb923c; font-weight: 600; }
+.leg-error        { color: #ef4444; font-weight: 600; }
+.leg-maintenance  { color: #818cf8; font-weight: 600; }
 .leg-error   { color: #ef4444; font-weight: 600; }
 .leg-offline { color: #9ca3af; font-weight: 600; }
 

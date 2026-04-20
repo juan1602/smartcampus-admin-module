@@ -15,20 +15,26 @@ function StatCard({ label, value, sub, colorClass, icon }) {
   );
 }
 
-function StatusBar({ online, offline, error, total }) {
+function StatusBar({ online, lowBattery, warning, offline, error, maintenance, total }) {
   if (!total) return null;
   const pct = (n) => ((n / total) * 100).toFixed(1);
   return (
     <div className="kpi-statusbar-wrap">
       <div className="kpi-statusbar">
-        {online  > 0 && <div className="bar-online"  style={{ width: `${pct(online)}%`  }} title={`Online: ${online}`}  />}
-        {error   > 0 && <div className="bar-error"   style={{ width: `${pct(error)}%`   }} title={`Error: ${error}`}    />}
-        {offline > 0 && <div className="bar-offline" style={{ width: `${pct(offline)}%` }} title={`Offline: ${offline}`} />}
+        {online      > 0 && <div className="bar-online"      style={{ width: `${pct(online)}%`      }} title={`Online: ${online}`}           />}
+        {lowBattery  > 0 && <div className="bar-lowbattery"  style={{ width: `${pct(lowBattery)}%`  }} title={`Batería baja: ${lowBattery}`}  />}
+        {warning     > 0 && <div className="bar-warning"     style={{ width: `${pct(warning)}%`     }} title={`Advertencia: ${warning}`}      />}
+        {error       > 0 && <div className="bar-error"       style={{ width: `${pct(error)}%`       }} title={`Error: ${error}`}              />}
+        {maintenance > 0 && <div className="bar-maintenance" style={{ width: `${pct(maintenance)}%` }} title={`Mantenimiento: ${maintenance}`} />}
+        {offline     > 0 && <div className="bar-offline"     style={{ width: `${pct(offline)}%`     }} title={`Offline: ${offline}`}          />}
       </div>
       <div className="kpi-statusbar-legend">
-        <span className="leg-online">Online {online}</span>
-        <span className="leg-error">Error {error}</span>
-        <span className="leg-offline">Offline {offline}</span>
+        {online      > 0 && <span className="leg-online">Online {online}</span>}
+        {lowBattery  > 0 && <span className="leg-lowbattery">Bat. baja {lowBattery}</span>}
+        {warning     > 0 && <span className="leg-warning">Advertencia {warning}</span>}
+        {error       > 0 && <span className="leg-error">Error {error}</span>}
+        {maintenance > 0 && <span className="leg-maintenance">Mantenimiento {maintenance}</span>}
+        {offline     > 0 && <span className="leg-offline">Offline {offline}</span>}
       </div>
     </div>
   );
@@ -135,11 +141,18 @@ export default function KpiDashboard({ liveTwinIds }) {
               icon="🖥️"
             />
             <StatCard
-              label="Online ahora"
-              value={stats.onlineCount}
-              sub={stats.totalDevices ? `${((stats.onlineCount / stats.totalDevices) * 100).toFixed(0)}% del total` : null}
+              label="Activos ahora"
+              value={stats.activeCount}
+              sub={stats.totalDevices ? `${((stats.activeCount / stats.totalDevices) * 100).toFixed(0)}% del total` : null}
               colorClass="card-green"
               icon="🟢"
+            />
+            <StatCard
+              label="Batería baja / Alerta"
+              value={(stats.lowBatteryCount ?? 0) + (stats.warningCount ?? 0)}
+              sub="requieren atención"
+              colorClass={(stats.lowBatteryCount + stats.warningCount) > 0 ? "card-orange" : "card-gray"}
+              icon="🔋"
             />
             <StatCard
               label="Offline"
@@ -174,8 +187,11 @@ export default function KpiDashboard({ liveTwinIds }) {
             <h3 className="kpi-section-title">Estado de la flota</h3>
             <StatusBar
               online={stats.onlineCount}
+              lowBattery={stats.lowBatteryCount ?? 0}
+              warning={stats.warningCount ?? 0}
               offline={stats.offlineCount}
               error={stats.errorCount}
+              maintenance={stats.maintenanceCount ?? 0}
               total={stats.totalDevices}
             />
           </div>

@@ -165,9 +165,13 @@ public class DeviceService {
         long totalProperties = propertyRepository.count();
         long totalTwins     = twinRepository.count();
 
-        long online  = devices.stream().filter(d -> "ONLINE".equalsIgnoreCase(d.getStatus())).count();
-        long offline = devices.stream().filter(d -> "OFFLINE".equalsIgnoreCase(d.getStatus())).count();
-        long error   = devices.stream().filter(d -> "ERROR".equalsIgnoreCase(d.getStatus())).count();
+        long online      = devices.stream().filter(d -> "ONLINE".equalsIgnoreCase(d.getStatus())).count();
+        long lowBattery  = devices.stream().filter(d -> "LOW_BATTERY".equalsIgnoreCase(d.getStatus())).count();
+        long warning     = devices.stream().filter(d -> "WARNING".equalsIgnoreCase(d.getStatus())).count();
+        long offline     = devices.stream().filter(d -> "OFFLINE".equalsIgnoreCase(d.getStatus())).count();
+        long error       = devices.stream().filter(d -> "ERROR".equalsIgnoreCase(d.getStatus())).count();
+        long maintenance = devices.stream().filter(d -> "MAINTENANCE".equalsIgnoreCase(d.getStatus())).count();
+        long activeCount = online + lowBattery + warning; // dispositivos que están enviando datos
 
         // Dispositivo visto más recientemente
         Map<String, Object> lastSeen = devices.stream()
@@ -194,9 +198,13 @@ public class DeviceService {
 
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("totalDevices",    devices.size());
+        stats.put("activeCount",     activeCount);
         stats.put("onlineCount",     online);
+        stats.put("lowBatteryCount", lowBattery);
+        stats.put("warningCount",    warning);
         stats.put("offlineCount",    offline);
         stats.put("errorCount",      error);
+        stats.put("maintenanceCount", maintenance);
         stats.put("totalTwins",      totalTwins);
         stats.put("totalProperties", totalProperties);
         stats.put("lastSeenDevice",  lastSeen);
