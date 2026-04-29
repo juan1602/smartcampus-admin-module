@@ -322,6 +322,7 @@ useEffect(() => {
     },
     {
       label: `Gráficas`,
+      hidden: true,
       content: (
         <TelemetryCharts devices={devices}/>
       )

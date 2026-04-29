@@ -5,7 +5,7 @@ export default function Tabs({ tabs, activeTab,setActiveTab }) {
   return (
     <div className="tabs-container">
       <div className="tabs-header">
-        {tabs.map((tab, index) => (
+        {tabs.map((tab, index) => tab.hidden ? null : (
           <button
             key={index}
             className={`tab-button ${activeTab === index ? "active" : ""}`}
