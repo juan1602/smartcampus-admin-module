@@ -105,7 +105,7 @@ export default function TwinGraph({ twins = [], liveTwinIds = new Set() }) {
           maxZoom={2}
         >
           <Background color="#3a3a3a" gap={20} />
-          <Controls />
+          <Controls showInteractiveChangeButton={false} />
           <MiniMap
             nodeColor={(n) => statusColor(n.data?.status)}
             style={{ background: "#262626", border: "1px solid #3a3a3a" }}
