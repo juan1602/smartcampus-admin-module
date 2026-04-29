@@ -4,6 +4,8 @@ import {
   createAlertRule,
   updateAlertRule,
   deleteAlertRule,
+  getAlertHistory,
+  clearAlertHistory,
 } from "../services/alertRuleService";
 import { getProperties } from "../services/propertyService";
 import "./AlertRulesManager.css";
@@ -24,6 +26,13 @@ export default function AlertRulesManager({ isAdmin }) {
   const [editingId,  setEditingId]  = useState(null);
   const [form,       setForm]       = useState(EMPTY_RULE);
   const [saving,     setSaving]     = useState(false);
+
+  const [history,      setHistory]      = useState([]);
+  const [historyPage,  setHistoryPage]  = useState(0);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyPages, setHistoryPages] = useState(0);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const HISTORY_SIZE = 10;
 
   const loadRules = async () => {
     try {
@@ -54,9 +63,31 @@ export default function AlertRulesManager({ isAdmin }) {
     }
   };
 
+  const loadHistory = async (page = 0) => {
+    setHistoryLoading(true);
+    try {
+      const res = await getAlertHistory(page, HISTORY_SIZE);
+      setHistory(res.data.content || []);
+      setHistoryTotal(res.data.totalElements || 0);
+      setHistoryPages(res.data.totalPages || 0);
+      setHistoryPage(page);
+    } catch (e) {
+      console.error("Error al cargar historial:", e);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!window.confirm("¿Borrar todo el historial de alertas?")) return;
+    await clearAlertHistory();
+    loadHistory(0);
+  };
+
   useEffect(() => {
     loadRules();
     loadProperties();
+    loadHistory(0);
   }, []);
 
   const handleChange = (e) => {
@@ -338,6 +369,78 @@ export default function AlertRulesManager({ isAdmin }) {
               ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* ── Historial de alertas disparadas ── */}
+      <div className="arm-table-card" style={{ marginTop: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+            Historial de alertas disparadas
+            {historyTotal > 0 && <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 400, color: "var(--text-secondary)" }}>({historyTotal} registros)</span>}
+          </h3>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="arm-btn-sm arm-btn-sm-blue" onClick={() => loadHistory(historyPage)}>↺ Actualizar</button>
+            {isAdmin && historyTotal > 0 && (
+              <button className="arm-btn-sm arm-btn-sm-red" onClick={handleClearHistory}>Limpiar historial</button>
+            )}
+          </div>
+        </div>
+
+        {historyLoading ? (
+          <div className="arm-empty">Cargando historial...</div>
+        ) : history.length === 0 ? (
+          <div className="arm-empty">
+            <div className="arm-empty-icon">📋</div>
+            <p>Aún no se han disparado alertas.</p>
+          </div>
+        ) : (
+          <>
+            <table className="arm-table">
+              <thead>
+                <tr>
+                  <th>Fecha / Hora</th>
+                  <th>Dispositivo</th>
+                  <th>Regla</th>
+                  <th>Propiedad</th>
+                  <th>Condición</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map(h => (
+                  <tr key={h.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {new Date(h.triggeredAt).toLocaleString()}
+                    </td>
+                    <td>
+                      <span style={{ color: "var(--color-primary)", fontWeight: 600 }}>{h.deviceCode}</span>
+                    </td>
+                    <td>{h.label}</td>
+                    <td><code className="arm-code">{h.property}</code></td>
+                    <td>
+                      <span className="arm-badge arm-badge-op">
+                        {h.operator === "GREATER_THAN" ? `> ${h.threshold}` : `< ${h.threshold}`}
+                      </span>
+                    </td>
+                    <td><strong style={{ color: h.operator === "GREATER_THAN" ? "#ef4444" : "#f59e0b" }}>{h.value}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {historyPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 12 }}>
+                <button className="arm-btn-sm" onClick={() => loadHistory(0)} disabled={historyPage === 0}>«</button>
+                <button className="arm-btn-sm" onClick={() => loadHistory(historyPage - 1)} disabled={historyPage === 0}>‹ Anterior</button>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                  Página <strong>{historyPage + 1}</strong> de <strong>{historyPages}</strong>
+                </span>
+                <button className="arm-btn-sm" onClick={() => loadHistory(historyPage + 1)} disabled={historyPage >= historyPages - 1}>Siguiente ›</button>
+                <button className="arm-btn-sm" onClick={() => loadHistory(historyPages - 1)} disabled={historyPage >= historyPages - 1}>»</button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

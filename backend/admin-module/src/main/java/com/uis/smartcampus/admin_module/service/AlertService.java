@@ -1,6 +1,8 @@
 package com.uis.smartcampus.admin_module.service;
 
+import com.uis.smartcampus.admin_module.model.AlertHistory;
 import com.uis.smartcampus.admin_module.model.AlertRule;
+import com.uis.smartcampus.admin_module.repository.AlertHistoryRepository;
 import com.uis.smartcampus.admin_module.repository.AlertRuleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -16,6 +18,7 @@ import java.util.Map;
 public class AlertService {
 
     private final AlertRuleRepository alertRuleRepository;
+    private final AlertHistoryRepository alertHistoryRepository;
     private final SimpMessagingTemplate wsTemplate;
 
     // Cooldown: evitar notificaciones repetidas (clave: deviceCode + ruleId)
@@ -46,7 +49,19 @@ public class AlertService {
                     continue; // aún en cooldown
                 }
 
-                lastNotified.put(cooldownKey, LocalDateTime.now());
+                LocalDateTime now = LocalDateTime.now();
+                lastNotified.put(cooldownKey, now);
+
+                // Persistir en historial
+                alertHistoryRepository.save(AlertHistory.builder()
+                        .deviceCode(deviceCode)
+                        .property(rule.getProperty())
+                        .value(value)
+                        .threshold(rule.getThreshold())
+                        .operator(rule.getOperator())
+                        .label(rule.getLabel())
+                        .triggeredAt(now)
+                        .build());
 
                 // Notificar al frontend via WebSocket
                 Map<String, Object> alert = new HashMap<>();
