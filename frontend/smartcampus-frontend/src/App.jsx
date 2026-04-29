@@ -422,13 +422,13 @@ useEffect(() => {
                 background: "var(--bg-card)",
                 borderRadius: 12,
                 boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-                padding: 28,
-                width: "90%",
-                maxWidth: 860,
-                maxHeight: "88vh",
+                padding: "20px 24px",
+                width: "92%",
+                maxWidth: 920,
+                height: "90vh",
                 display: "flex",
                 flexDirection: "column",
-                gap: 16,
+                gap: 12,
                 color: "var(--text-primary)"
               }}
             >
@@ -441,80 +441,32 @@ useEffect(() => {
                 >✕</button>
               </div>
 
-              {/* Filtros: select de dispositivo + buscador de texto */}
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-
-                {/* Select — al cambiar llama al backend con el dispositivo seleccionado */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>Filtrar por dispositivo</label>
-                 <select
-  value={selectedDevice}
-  onChange={(e) => handleDeviceFilter(e.target.value)}
-  style={{
-    padding: "8px 12px",
-    borderRadius: 8,
-    border: `1.5px solid var(--border-color)`,
-    fontSize: 14,
-    background: "var(--bg-main)",
-    color: "var(--text-primary)",
-    cursor: "pointer",
-    transition: "border-color 0.2s ease, background 0.2s ease",
-  }}
->
-                    <option value="all">Todos los dispositivos</option>
-                    {devices.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.code}{d.name ? ` — ${d.name}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Buscador — filtra sobre los datos ya cargados en el frontend */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "2 1 260px" }}>
-  <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Buscar</label>
-  <input
-    type="text"
-    placeholder="Buscar por propiedad, valor o dispositivo..."
-    value={searchText}
-    onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
-    style={{
-      padding: "8px 12px",
-      borderRadius: 8,
-      border: `1.5px solid var(--border-color)`,
-      fontSize: 14,
-      background: "var(--bg-main)",
-      color: "var(--text-primary)",
-      fontFamily: "inherit",
-      transition: "border-color 0.2s ease, background 0.2s ease",
-    }}
-  />
-</div>
-
-                <div style={{ display: "flex", alignItems: "flex-end" }}>
-                  <button
-  onClick={() => loadModalTelemetry(selectedDevice)}
-  disabled={modalLoading}
-  style={{
-  padding: "6px 14px",
-  borderRadius: 8,
-  background: "var(--color-primary)", // color principal del mockup
-  color: "#fff",
-  border: "1px solid var(--color-primary)",
-  fontWeight: 600,
-  fontFamily: "inherit",
-  fontSize: 14,
-  cursor: modalLoading ? "not-allowed" : "pointer",
-  opacity: modalLoading ? 0.7 : 1,
-  transition: "background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease",
-  boxShadow: modalLoading ? "none" : "0 4px 12px rgba(0,108,53,0.4)",
-}}
-  onMouseEnter={(e) => !modalLoading && (e.currentTarget.style.background = "#00532b")}
-  onMouseLeave={(e) => !modalLoading && (e.currentTarget.style.background = "var(--color-primary)")}
->
-  {modalLoading ? "⏳ Cargando..." : "🔄 Actualizar"}
-</button>
-                </div>
+              {/* Filtros en una sola fila compacta */}
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <select
+                  value={selectedDevice}
+                  onChange={(e) => handleDeviceFilter(e.target.value)}
+                  style={{ padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border-color)", fontSize: 13, background: "var(--bg-main)", color: "var(--text-primary)", cursor: "pointer", flex: "0 0 220px" }}
+                >
+                  <option value="all">Todos los dispositivos</option>
+                  {devices.map((d) => (
+                    <option key={d.id} value={d.id}>{d.code}{d.name ? ` — ${d.name}` : ""}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Buscar por propiedad, valor o dispositivo..."
+                  value={searchText}
+                  onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
+                  style={{ padding: "7px 10px", borderRadius: 8, border: "1.5px solid var(--border-color)", fontSize: 13, background: "var(--bg-main)", color: "var(--text-primary)", fontFamily: "inherit", flex: 1 }}
+                />
+                <button
+                  onClick={() => loadModalTelemetry(selectedDevice)}
+                  disabled={modalLoading}
+                  style={{ padding: "7px 14px", borderRadius: 8, background: "var(--color-primary)", color: "#fff", border: "none", fontWeight: 600, fontSize: 13, cursor: modalLoading ? "not-allowed" : "pointer", opacity: modalLoading ? 0.7 : 1, whiteSpace: "nowrap" }}
+                >
+                  {modalLoading ? "⏳ Cargando..." : "🔄 Actualizar"}
+                </button>
               </div>
 
               {/* Contador de registros visibles */}
