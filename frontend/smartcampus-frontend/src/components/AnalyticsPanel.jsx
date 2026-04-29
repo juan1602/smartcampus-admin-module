@@ -164,7 +164,7 @@ export default function AnalyticsPanel({ devices }) {
       {/* Encabezado */}
       <div className="ap-header">
         <div>
-          <h2>Panel de Analítica</h2>
+          <h2>Panel de Telemetría</h2>
           <p className="ap-subtitle">Estadísticas, resumen y exportación del historial de telemetría.</p>
         </div>
         <div className="ap-export-btns">

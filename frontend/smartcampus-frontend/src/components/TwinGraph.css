@@ -1,0 +1,266 @@
+.twin-graph-wrapper {
+  display: flex;
+  height: calc(100vh - 160px);
+  gap: 0;
+  background: var(--bg-main);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.twin-graph-canvas {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Nodo ── */
+.twin-node {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 16px;
+  width: 230px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.twin-node:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 108, 53, 0.25);
+}
+
+.twin-node--live {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+  animation: live-pulse 2s infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); }
+  50%       { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.05); }
+}
+
+.twin-node__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.twin-node__name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.twin-node__status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+
+.twin-node__device {
+  font-size: 12px;
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.twin-node__type {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.twin-node__telemetry {
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.twin-node__metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.twin-node__metric-key {
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.twin-node__metric-val {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.twin-node__more {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: right;
+  margin-top: 2px;
+}
+
+.twin-node__live-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: dot-blink 1s infinite;
+}
+
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* ── Panel lateral ── */
+.twin-graph-panel {
+  width: 280px;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-color);
+  padding: 20px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.twin-graph-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.twin-graph-panel__header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.twin-graph-panel__close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.twin-graph-panel__close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.twin-graph-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.twin-graph-panel__label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.twin-graph-panel__value {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.twin-graph-panel__badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  color: #fff;
+  width: fit-content;
+}
+
+.twin-graph-panel__telemetry-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-color);
+}
+
+.twin-graph-panel__telemetry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.twin-graph-panel__metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-hover);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.twin-graph-panel__metric-key {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.twin-graph-panel__metric-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.twin-graph-panel__empty {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ── Empty state ── */
+.twin-graph-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* ── Override React Flow controls/minimap dark theme ── */
+.react-flow__controls {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+}
+
+.react-flow__controls-button {
+  background: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  fill: var(--text-secondary) !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--bg-hover) !important;
+}

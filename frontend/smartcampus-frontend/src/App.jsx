@@ -16,6 +16,7 @@ import AlertRulesManager from "./components/AlertRulesManager";
 import { useTwinWebSocket } from "./services/useTwinWebSocket";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
+import TwinGraph from "./components/TwinGraph";
 
 function App() {
 
@@ -326,6 +327,10 @@ useEffect(() => {
       content: (
         <TelemetryCharts devices={devices}/>
       )
+    },
+    {
+      label: `Grafo de Twins`,
+      content: <TwinGraph twins={twins} liveTwinIds={liveTwinIds} />
     },
     {
       label: `Panel de Telemetría`,
