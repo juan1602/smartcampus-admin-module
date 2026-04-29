@@ -49,6 +49,8 @@ function App() {
   const [modalTelemetry, setModalTelemetry] = useState([]);
   const [modalLoading, setModalLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // ── Estados modal Dispositivos ──────────────────────────────────────────────
   const [showDevicesModal, setShowDevicesModal] = useState(false);
@@ -190,6 +192,7 @@ useEffect(() => {
   // Actualiza el estado y recarga los datos desde el backend.
   const handleDeviceFilter = async (deviceId) => {
     setSelectedDevice(deviceId);
+    setCurrentPage(1);
     await loadModalTelemetry(deviceId);
   };
 
@@ -223,10 +226,10 @@ useEffect(() => {
     );
   });
 
-  // Ordena por fecha más reciente y limita a 100 filas
-  const limitedRows = [...filteredRows]
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, 100);
+  const sortedRows = [...filteredRows].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedRows = sortedRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // ── Filtrado modal Dispositivos ─────────────────────────────────────────────
   const devNamespaceOptions = [...new Set(devices.map(d => d.namespace).filter(Boolean))].sort();
@@ -474,7 +477,7 @@ useEffect(() => {
     type="text"
     placeholder="Buscar por propiedad, valor o dispositivo..."
     value={searchText}
-    onChange={(e) => setSearchText(e.target.value)}
+    onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
     style={{
       padding: "8px 12px",
       borderRadius: 8,
@@ -516,15 +519,14 @@ useEffect(() => {
 
               {/* Contador de registros visibles */}
               <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-  Mostrando <strong style={{ color: "var(--text-primary)" }}>{limitedRows.length}</strong> de <strong style={{ color: "var(--text-primary)" }}>{filteredRows.length}</strong> registros
-  {filteredRows.length > 100 && " (máximo 100)"}
-</div>
+                Mostrando <strong style={{ color: "var(--text-primary)" }}>{((safePage - 1) * PAGE_SIZE) + 1}–{Math.min(safePage * PAGE_SIZE, sortedRows.length)}</strong> de <strong style={{ color: "var(--text-primary)" }}>{sortedRows.length}</strong> registros
+              </div>
 
               {/* Tabla de resultados */}
               <div style={{ overflowY: "auto", flex: 1, borderRadius: 8, border: "1px solid var(--border-color)", background: "var(--bg-card)" }}>
                 {modalLoading ? (
                   <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>Cargando datos...</div>
-                ) : limitedRows.length === 0 ? (
+                ) : pagedRows.length === 0 ? (
                   <div style={{ padding: 40, textAlign: "center", color: "var(--text-secondary)" }}>No hay registros de telemetría.</div>
                 ) : (
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
@@ -537,7 +539,7 @@ useEffect(() => {
                       </tr>
                     </thead>
                     <tbody>
-                      {limitedRows.map((row, idx) => (
+                      {pagedRows.map((row, idx) => (
                         <tr key={row.rowId} style={{ background: idx % 2 === 0 ? "var(--bg-card)" : "var(--bg-hover)" }}>
                           <td style={tdStyle}>
                             {row.timestamp ? new Date(row.timestamp).toLocaleString() : "Sin fecha"}
@@ -555,6 +557,35 @@ useEffect(() => {
                   </table>
                 )}
               </div>
+
+              {/* Controles de paginación */}
+              {totalPages > 1 && (
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safePage === 1}
+                    style={{ ...paginBtnStyle, opacity: safePage === 1 ? 0.35 : 1 }}
+                  >«</button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    style={{ ...paginBtnStyle, opacity: safePage === 1 ? 0.35 : 1 }}
+                  >‹ Anterior</button>
+                  <span style={{ fontSize: 13, color: "var(--text-secondary)", padding: "0 8px" }}>
+                    Página <strong style={{ color: "var(--text-primary)" }}>{safePage}</strong> de <strong style={{ color: "var(--text-primary)" }}>{totalPages}</strong>
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    style={{ ...paginBtnStyle, opacity: safePage === totalPages ? 0.35 : 1 }}
+                  >Siguiente ›</button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safePage === totalPages}
+                    style={{ ...paginBtnStyle, opacity: safePage === totalPages ? 0.35 : 1 }}
+                  >»</button>
+                </div>
+              )}
 
               {/* Botón cerrar en el footer del modal */}
               <div style={{ textAlign: "right" }}>
@@ -812,4 +843,15 @@ const tdStyle = {
   padding: "9px 14px",
   borderBottom: "1px solid var(--bg-hover)",
   color: "var(--text-primary)"
+};
+
+const paginBtnStyle = {
+  padding: "5px 12px",
+  borderRadius: 7,
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-hover)",
+  color: "var(--text-primary)",
+  fontWeight: 600,
+  fontSize: 13,
+  cursor: "pointer",
 };
