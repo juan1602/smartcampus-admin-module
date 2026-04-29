@@ -42,10 +42,12 @@ export default function AlertRulesManager({ isAdmin }) {
       // Deduplica por nombre para el selector
       const unique = [];
       const seen   = new Set();
-      (res.data || []).forEach(p => {
-        const key = p.name.toLowerCase();
-        if (!seen.has(key)) { seen.add(key); unique.push(p); }
-      });
+      (res.data || [])
+        .filter(p => !p.dataType || p.dataType === "NUMBER")
+        .forEach(p => {
+          const key = p.name.toLowerCase();
+          if (!seen.has(key)) { seen.add(key); unique.push(p); }
+        });
       setProperties(unique);
     } catch (e) {
       console.error("Error al cargar propiedades:", e);

@@ -11,13 +11,16 @@ public class Property {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;        // temperature, humidity
-    
-    private String unit;        // °C, %
+    private String name;
+
+    private String unit;
 
     private String description;
 
     private boolean writable;
+
+    @Enumerated(EnumType.STRING)
+    private DataType dataType = DataType.NUMBER;
 
     @ManyToMany(mappedBy = "properties")
     @JsonIgnore
@@ -58,6 +61,13 @@ public class Property {
     }
     public void setWritable(boolean writable) {
         this.writable = writable;
+    }
+
+    public DataType getDataType() {
+        return dataType;
+    }
+    public void setDataType(DataType dataType) {
+        this.dataType = dataType == null ? DataType.NUMBER : dataType;
     }
 
 }

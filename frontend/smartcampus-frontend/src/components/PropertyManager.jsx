@@ -5,12 +5,12 @@ import "./PropertyManager.css";
 export default function PropertyManager({ properties, onRefresh, onFormOpen, isAdmin }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: "", unit: "", description: "", writable: false });
+  const [formData, setFormData] = useState({ name: "", unit: "", description: "", writable: false, dataType: "NUMBER" });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const resetForm = () => {
-    setFormData({ name: "", unit: "", description: "" });
+    setFormData({ name: "", unit: "", description: "", writable: false, dataType: "NUMBER" });
     setEditingId(null);
     setShowForm(false);
     setMessage("");
@@ -18,11 +18,12 @@ export default function PropertyManager({ properties, onRefresh, onFormOpen, isA
   };
 
   const handleEdit = (property) => {
-    setFormData({ 
-      name: property.name, 
-      unit: property.unit || "", 
+    setFormData({
+      name: property.name,
+      unit: property.unit || "",
       description: property.description || "",
-      writable: property.writable ?? false
+      writable: property.writable ?? false,
+      dataType: property.dataType || "NUMBER"
     });
     setEditingId(property.id);
     setShowForm(true);
@@ -120,7 +121,19 @@ export default function PropertyManager({ properties, onRefresh, onFormOpen, isA
           </div>
 
           <div className="form-group">
-            <label>Es editable esta propiedad </label>
+            <label>Tipo de dato</label>
+            <select
+              value={formData.dataType}
+              onChange={e => setFormData({ ...formData, dataType: e.target.value })}
+            >
+              <option value="NUMBER">NUMBER — numérico (temperatura, humedad, batería…)</option>
+              <option value="STRING">STRING — texto (firmware, modelo, SSID…)</option>
+              <option value="BOOLEAN">BOOLEAN — verdadero/falso (puerta abierta, alarma…)</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Es editable esta propiedad</label>
             <select
               value={formData.writable ? "yes" : "no"}
               onChange={e => setFormData({ ...formData, writable: e.target.value === "yes" })}
@@ -141,7 +154,12 @@ export default function PropertyManager({ properties, onRefresh, onFormOpen, isA
           {properties.map((prop) => (
             <div key={prop.id} className="property-item">
               <div className="property-content">
-                <h4>{prop.name}</h4>
+                <div className="property-name-row">
+                  <h4>{prop.name}</h4>
+                  <span className={`badge-datatype badge-datatype--${(prop.dataType || "NUMBER").toLowerCase()}`}>
+                    {prop.dataType || "NUMBER"}
+                  </span>
+                </div>
                 {prop.unit && <p className="unit">Unidad: {prop.unit}</p>}
                 {prop.description && <p className="description">{prop.description}</p>}
                 <p className="writable">Editable: {prop.writable ? "Sí" : "No"}</p>
