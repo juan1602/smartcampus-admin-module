@@ -328,7 +328,7 @@ useEffect(() => {
       )
     },
     {
-      label: `Analítica`,
+      label: `Panel de Telemetría`,
       content: <AnalyticsPanel devices={devices} />
     },
     {
