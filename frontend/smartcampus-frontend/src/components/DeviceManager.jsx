@@ -144,7 +144,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
   const addCustomProperty = () => {
     setFormData(prev => ({
       ...prev,
-      customProperties: [...prev.customProperties, { name: "", unit: "", description: "", writable: false }]
+      customProperties: [...prev.customProperties, { name: "", unit: "", description: "", writable: false, dataType: "NUMBER" }]
     }));
   };
 
@@ -175,7 +175,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       const customIds = [];
       for (const cp of formData.customProperties) {
         if (!cp.name.trim()) continue;
-        const res = await createProperty({ name: cp.name.trim(), unit: cp.unit, description: cp.description, writable: cp.writable });
+        const res = await createProperty({ name: cp.name.trim(), unit: cp.unit, description: cp.description, writable: cp.writable, dataType: cp.dataType || "NUMBER" });
         customIds.push(res.data.id);
       }
       const allPropertyIds = [...formData.selectedProperties, ...customIds];
@@ -695,6 +695,14 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                   value={cp.description}
                   onChange={(e) => updateCustomProperty(index, "description", e.target.value)}
                 />
+                <select
+                  value={cp.dataType || "NUMBER"}
+                  onChange={(e) => updateCustomProperty(index, "dataType", e.target.value)}
+                >
+                  <option value="NUMBER">NUMBER</option>
+                  <option value="STRING">STRING</option>
+                  <option value="BOOLEAN">BOOLEAN</option>
+                </select>
                 <select
                   value={cp.writable ? "yes" : "no"}
                   onChange={(e) => updateCustomProperty(index, "writable", e.target.value === "yes")}
