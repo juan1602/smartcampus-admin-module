@@ -55,6 +55,7 @@ function App() {
   const [devModalType, setDevModalType] = useState("");
   const [devModalStatus, setDevModalStatus] = useState("");
   const [devModalNamespace, setDevModalNamespace] = useState("");
+  const [devModalTag, setDevModalTag] = useState("");
 
   // ── Estados modal Twins ─────────────────────────────────────────────────────
   const [showTwinsModal, setShowTwinsModal] = useState(false);
@@ -228,15 +229,22 @@ useEffect(() => {
 
   // ── Filtrado modal Dispositivos ─────────────────────────────────────────────
   const devNamespaceOptions = [...new Set(devices.map(d => d.namespace).filter(Boolean))].sort();
+  const devTagOptions = [...new Set(
+    devices.flatMap(d => d.tags ? d.tags.split(",").map(t => t.trim()).filter(Boolean) : [])
+  )].sort();
   const filteredDevModal = devices.filter(d => {
     const q = devModalText.toLowerCase();
     if (q && !d.code?.toLowerCase().includes(q) && !d.name?.toLowerCase().includes(q)) return false;
     if (devModalType && d.type !== devModalType) return false;
     if (devModalStatus && d.status !== devModalStatus) return false;
     if (devModalNamespace && d.namespace !== devModalNamespace) return false;
+    if (devModalTag) {
+      const deviceTags = d.tags ? d.tags.split(",").map(t => t.trim()) : [];
+      if (!deviceTags.includes(devModalTag)) return false;
+    }
     return true;
   });
-  const devHasFilters = devModalText || devModalType || devModalStatus || devModalNamespace;
+  const devHasFilters = devModalText || devModalType || devModalStatus || devModalNamespace || devModalTag;
 
   // ── Filtrado modal Twins ────────────────────────────────────────────────────
   const filteredTwinsModal = twins.filter(t => {
@@ -588,8 +596,12 @@ useEffect(() => {
                   <option value="OFFLINE">OFFLINE</option>
                   <option value="ERROR">ERROR</option>
                 </select>
+                <select value={devModalTag} onChange={e => setDevModalTag(e.target.value)} style={selectStyle}>
+                  <option value="">Todos los tags</option>
+                  {devTagOptions.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+                </select>
                 {devHasFilters && (
-                  <button onClick={() => { setDevModalText(""); setDevModalType(""); setDevModalStatus(""); setDevModalNamespace(""); }} style={clearBtnStyle}>
+                  <button onClick={() => { setDevModalText(""); setDevModalType(""); setDevModalStatus(""); setDevModalNamespace(""); setDevModalTag(""); }} style={clearBtnStyle}>
                     ✕ Limpiar
                   </button>
                 )}
