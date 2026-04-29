@@ -262,8 +262,31 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
     }
   };
 
-  const handleCreateFromUnknown = ({ code }) => {
-    setFormData(prev => ({ ...prev, code }));
+  const handleCreateFromUnknown = ({ code, telemetryJson = {} }) => {
+    const matchedIds = [];
+    const customs = [];
+
+    Object.entries(telemetryJson).forEach(([key, value]) => {
+      if (key === "deviceCode") return;
+      const existing = (properties || []).find(
+        p => p.name.toLowerCase() === key.toLowerCase()
+      );
+      if (existing) {
+        matchedIds.push(existing.id);
+      } else {
+        const dataType =
+          typeof value === "boolean" ? "BOOLEAN" :
+          typeof value === "number"  ? "NUMBER"  : "STRING";
+        customs.push({ name: key, unit: "", description: "", writable: false, dataType });
+      }
+    });
+
+    setFormData(prev => ({
+      ...prev,
+      code,
+      selectedProperties: matchedIds,
+      customProperties: customs,
+    }));
     setEditingId(null);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
