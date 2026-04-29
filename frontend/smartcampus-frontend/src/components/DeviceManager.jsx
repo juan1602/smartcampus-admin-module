@@ -30,6 +30,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
   const [filterNamespace, setFilterNamespace] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterTag, setFilterTag] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
   
   // Notifica al padre cuando se abre/cierra el formulario para pausar polling
@@ -461,16 +462,24 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
 
   const namespaceOptions = [...new Set((devices || []).map(d => d.namespace).filter(Boolean))].sort();
 
+  const tagOptions = [...new Set(
+    (devices || []).flatMap(d => d.tags ? d.tags.split(",").map(t => t.trim()).filter(Boolean) : [])
+  )].sort();
+
   const filteredDevices = (devices || []).filter(d => {
     const text = filterText.toLowerCase();
     if (text && !d.code?.toLowerCase().includes(text) && !d.name?.toLowerCase().includes(text)) return false;
     if (filterNamespace && d.namespace !== filterNamespace) return false;
     if (filterType && d.type !== filterType) return false;
     if (filterStatus && d.status !== filterStatus) return false;
+    if (filterTag) {
+      const deviceTags = d.tags ? d.tags.split(",").map(t => t.trim()) : [];
+      if (!deviceTags.includes(filterTag)) return false;
+    }
     return true;
   });
 
-  const hasActiveFilters = filterText || filterNamespace || filterType || filterStatus;
+  const hasActiveFilters = filterText || filterNamespace || filterType || filterStatus || filterTag;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -539,8 +548,12 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
           <option value="OFFLINE">OFFLINE</option>
           <option value="ERROR">ERROR</option>
         </select>
+        <select className="filter-select" value={filterTag} onChange={(e) => setFilterTag(e.target.value)}>
+          <option value="">Todos los tags</option>
+          {tagOptions.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+        </select>
         {hasActiveFilters && (
-          <button className="btn-clear-filters" onClick={() => { setFilterText(""); setFilterNamespace(""); setFilterType(""); setFilterStatus(""); }}>
+          <button className="btn-clear-filters" onClick={() => { setFilterText(""); setFilterNamespace(""); setFilterType(""); setFilterStatus(""); setFilterTag(""); }}>
             ✕ Limpiar
           </button>
         )}
