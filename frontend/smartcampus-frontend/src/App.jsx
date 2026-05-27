@@ -17,6 +17,7 @@ import { useTwinWebSocket } from "./services/useTwinWebSocket";
 import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
 import TwinGraph from "./components/TwinGraph";
+import ApplicationManager from "./components/ApplicationManager";
 
 function App() {
 
@@ -342,6 +343,15 @@ useEffect(() => {
     {
       label: `Alertas`,
       content: <AlertRulesManager isAdmin={isAdmin} />
+    },
+    {
+      label: `Aplicaciones`,
+      content: (
+        <ApplicationManager
+          devices={devices}
+          isAdmin={isAdmin}
+        />
+      )
     },
     ...(isAdmin ? [
       {
