@@ -63,6 +63,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/alert-rules/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/alert-rules/**").hasRole("ADMIN")
 
+                // Apliccaciones - lectura admin y viewer
+                .requestMatchers(HttpMethod.GET,"/api/applications/**").hasAnyRole("ADMIN", "VIEWER")
+
+                // Aplicaciones — escritura solo ADMIN
+                .requestMatchers(HttpMethod.POST,   "/api/applications/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/applications/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/applications/**").hasRole("ADMIN")
+
+                .anyRequest().authenticated()
+
                 // Escritura — solo ADMIN
                 .requestMatchers(HttpMethod.POST,   "/devices/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT,    "/devices/**").hasRole("ADMIN")
