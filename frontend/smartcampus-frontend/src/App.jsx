@@ -18,6 +18,7 @@ import "./App.css";
 import TelemetryCharts from "./components/TelemetryCharts";
 import TwinGraph from "./components/TwinGraph";
 import ApplicationManager from "./components/ApplicationManager";
+import { getApplications } from "./services/applicationService";
 
 function App() {
 
@@ -43,6 +44,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [applications, setApplications] = useState([]);
 
   // ── Estados del modal de historial ─────────────────────────────────────────
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -141,16 +143,18 @@ useEffect(() => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [devicesRes, twinsRes, telemetryRes, propertiesRes] = await Promise.all([
+      const [devicesRes, twinsRes, telemetryRes, propertiesRes, applicationsRes] = await Promise.all([
         getDevices(),
         getTwins(),
         getTelemetry(),
-        getProperties()
+        getProperties(),
+        getApplications()
       ]);
       setDevices(devicesRes.data || []);
       setTwins(twinsRes.data || []);
       setTelemetry(telemetryRes.data || []);
       setProperties(propertiesRes.data || []);
+      setApplications(applicationsRes.data || [])
       setError(null);
     } catch (err) {
       console.error("Error al cargar datos:", err);
@@ -267,7 +271,7 @@ useEffect(() => {
       label: `Dashboard`,
       content: (
         <>
-          <KpiDashboard liveTwinIds={liveTwinIds} />
+          <KpiDashboard liveTwinIds={liveTwinIds} applications={applications} onGotoApplications={() => setActiveTab(tabs.findIndex(t => t.label === "Aplicaciones"))}/>
           <div className="dashboard-grid">
             <DataCard
               title="Dispositivos"
@@ -306,6 +310,7 @@ useEffect(() => {
           twins={twins}
           devices={devices}
           properties={properties}
+          applications={applications}
           onRefresh={loadData}
           onFormOpen={setIsFormOpen}
           highlightedDeviceId={highlightedDeviceId}

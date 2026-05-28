@@ -64,7 +64,9 @@ function BreakdownTable({ title, data }) {
   );
 }
 
-export default function KpiDashboard({ liveTwinIds }) {
+
+
+export default function KpiDashboard({ liveTwinIds,applications=[],onGotoApplications }) {
   const [stats, setStats]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -178,6 +180,20 @@ export default function KpiDashboard({ liveTwinIds }) {
               colorClass="card-orange"
               icon="🏷️"
             />
+
+            <div
+              onClick={onGoToApplications}
+              style={{ cursor: "pointer" }}
+              title="Ir a Aplicaciones"
+              >
+              <StatCard
+                label="Aplicaciones activas"
+                value={applications.filter(a => a.status === "ACTIVE").length}
+                sub={`${applications.filter(a => a.status === "INACTIVE").length} inactivas`}
+                colorClass="card-green"
+                icon="📱"
+              />
+            </div>
           </div>
 
           {/* Barra de estado */}

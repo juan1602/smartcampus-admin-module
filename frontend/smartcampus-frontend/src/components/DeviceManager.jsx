@@ -7,7 +7,7 @@ import yaml from "js-yaml";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export default function DeviceManager({ twins, devices, properties, onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight, isAdmin, unknownDeviceSignal }) {
+export default function DeviceManager({ twins, devices, properties,applications=[], onRefresh, onFormOpen, highlightedDeviceId, onClearHighlight, isAdmin, unknownDeviceSignal }) {
 
   // ── Estados del formulario ──────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -27,6 +27,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
 
   // ── Filtros y vista ─────────────────────────────────────────────────────────
   const [filterText, setFilterText] = useState("");
+  const [filterApp, setFilterApp] = useState("");
   const [filterNamespace, setFilterNamespace] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -499,10 +500,16 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
       const deviceTags = d.tags ? d.tags.split(",").map(t => t.trim()) : [];
       if (!deviceTags.includes(filterTag)) return false;
     }
+    if (filterApp) {
+      const app = applications.find(a => String(a.id) === filterApp);
+      if (!app) return false;
+      const appDeviceIds = new Set((app.devices || []).map(d => d.id));
+      if (!appDeviceIds.has(d.id)) return false;
+    }
     return true;
   });
 
-  const hasActiveFilters = filterText || filterNamespace || filterType || filterStatus || filterTag;
+  const hasActiveFilters = filterText || filterNamespace || filterType || filterStatus || filterTag || filterApp;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -576,7 +583,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
           {tagOptions.map(tag => <option key={tag} value={tag}>{tag}</option>)}
         </select>
         {hasActiveFilters && (
-          <button className="btn-clear-filters" onClick={() => { setFilterText(""); setFilterNamespace(""); setFilterType(""); setFilterStatus(""); setFilterTag(""); }}>
+          <button className="btn-clear-filters" onClick={() => { setFilterText(""); setFilterNamespace(""); setFilterType(""); setFilterStatus(""); setFilterTag("");setFilterApp(""); }}>
             ✕ Limpiar
           </button>
         )}
@@ -837,6 +844,25 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                       </tbody>
                     </table>
                   )}
+                  {(() => {
+                    const deviceApps = applications.filter(a =>
+                      (a.devices || []).some(d => d.id === device.id)
+                    );
+                    return deviceApps.length > 0 ? (
+                      <div className="tag-list" style={{ marginTop: 4 }}>
+                        {deviceApps.map(a => (
+                          <span key={a.id} style={{
+                            display: "inline-block", padding: "2px 8px",
+                            background: "rgba(0,108,53,0.12)", color: "var(--color-primary)",
+                            borderRadius: 999, fontSize: 11, fontWeight: 600, marginRight: 4
+                          }}>
+                            📱 {a.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+
                 </div>
 
                 <div className="device-actions">
@@ -872,6 +898,7 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                 <th>Tags</th>
                 <th>Ubicación</th>
                 <th>Estado</th>
+                <th>Aplicaciones</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -893,6 +920,19 @@ export default function DeviceManager({ twins, devices, properties, onRefresh, o
                     </td>
                     <td>{device.location || "-"}</td>
                     <td><span className={`device-status ${device.status?.toLowerCase()}`}>{device.status}</span></td>
+                    <td>
+                      {applications
+                        .filter(a => (a.devices || []).some(d => d.id === device.id))
+                        .map(a => (
+                          <span key={a.id} style={{
+                            display: "inline-block", padding: "2px 7px",
+                            background: "rgba(0,108,53,0.12)", color: "var(--color-primary)",
+                            borderRadius: 999, fontSize: 11, fontWeight: 600, marginRight: 4
+                          }}>
+                            {a.name}
+                          </span>
+                        ))}
+                    </td>
                     <td>
                       <div className="list-actions">
                         {isAdmin && <button onClick={() => handleEdit(device)} className="btn-edit">✏️</button>}
