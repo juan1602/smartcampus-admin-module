@@ -182,7 +182,7 @@ export default function KpiDashboard({ liveTwinIds,applications=[],onGotoApplica
             />
 
             <div
-              onClick={onGoToApplications}
+              onClick={onGotoApplications}
               style={{ cursor: "pointer" }}
               title="Ir a Aplicaciones"
               >
