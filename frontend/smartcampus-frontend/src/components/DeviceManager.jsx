@@ -582,6 +582,12 @@ export default function DeviceManager({ twins, devices, properties,applications=
           <option value="">Todos los tags</option>
           {tagOptions.map(tag => <option key={tag} value={tag}>{tag}</option>)}
         </select>
+        <select className="filter-select" value={filterApp} onChange={(e) => setFilterApp(e.target.value)}>
+          <option value="">Todas las aplicaciones</option>
+          {applications.map(a => (
+            <option key={a.id} value={a.id}>{a.name}</option>
+          ))}
+        </select>
         {hasActiveFilters && (
           <button className="btn-clear-filters" onClick={() => { setFilterText(""); setFilterNamespace(""); setFilterType(""); setFilterStatus(""); setFilterTag("");setFilterApp(""); }}>
             ✕ Limpiar
