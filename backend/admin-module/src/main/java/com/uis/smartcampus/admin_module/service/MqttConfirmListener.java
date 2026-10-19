@@ -3,6 +3,7 @@ package com.uis.smartcampus.admin_module.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class MqttConfirmListener {
 
     private final TelemetryService telemetryService;
@@ -25,7 +27,7 @@ public class MqttConfirmListener {
     public void handleConfirm(Message<String> message) {
         try {
             String payload = message.getPayload();
-            System.out.println("📨 Confirmación recibida: " + payload);
+            log.debug("Confirmación recibida: {}", payload);
 
             Map<String, Object> body = mapper.readValue(
                     payload,
@@ -38,15 +40,14 @@ public class MqttConfirmListener {
             Map<String, Object> data = (Map<String, Object>) body.get("data");
 
             if (deviceCode == null || data == null) {
-                System.err.println("❌ Confirmación inválida: falta deviceCode o data");
+                log.warn("Confirmación inválida: falta deviceCode o data");
                 return;
             }
 
             telemetryService.applyConfirmedTelemetry(deviceCode, data);
 
         } catch (Exception e) {
-            System.err.println("❌ Error procesando confirmación MQTT: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error procesando confirmación MQTT", e);
         }
     }
 }

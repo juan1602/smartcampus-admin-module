@@ -6,12 +6,14 @@ import com.uis.smartcampus.admin_module.model.Role;
 import com.uis.smartcampus.admin_module.repository.AlertRuleRepository;
 import com.uis.smartcampus.admin_module.repository.AppUserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class DataInitializer implements CommandLineRunner {
 
     private final AppUserRepository userRepository;
@@ -32,7 +34,7 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode(rawPassword))
                     .role(role)
                     .build());
-            System.out.println("✅ Usuario creado: " + username + " [" + role + "]");
+            log.info("Usuario creado: {} [{}]", username, role);
         }
     }
 
@@ -52,7 +54,7 @@ public class DataInitializer implements CommandLineRunner {
                     .label("Batería baja (<10%)")
                     .active(true)
                     .build());
-            System.out.println("✅ Reglas de alerta por defecto creadas");
+            log.info("Reglas de alerta por defecto creadas");
         }
     }
 }

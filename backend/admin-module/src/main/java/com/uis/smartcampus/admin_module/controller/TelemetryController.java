@@ -8,6 +8,7 @@ import com.uis.smartcampus.admin_module.repository.DigitalTwinRepository;
 import com.uis.smartcampus.admin_module.repository.TelemetryRecordRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/telemetry")
 @RequiredArgsConstructor
+@Slf4j
 public class TelemetryController {
 
     private final DeviceRepository deviceRepository;
@@ -29,12 +31,14 @@ public class TelemetryController {
     // 🔹 obtener todos los registros
     @GetMapping
     public List<TelemetryRecord> getAll() {
+        log.info("GET /telemetry");
         return telemetryRecordRepository.findAll();
     }
 
     // 🆕 NUEVO ENDPOINT PARA FRONTEND (por deviceId)
     @GetMapping("/device/{deviceId}")
     public List<TelemetryRecord> getTelemetryByDevice(@PathVariable Long deviceId) {
+        log.info("GET /telemetry/device/{}", deviceId);
 
         return telemetryRecordRepository
                 .findByDeviceIdOrderByTimestampDesc(deviceId);
@@ -45,12 +49,13 @@ public class TelemetryController {
     @PostMapping("/{code}")
     public DigitalTwin receiveTelemetry(@PathVariable String code,
                                         @RequestBody Map<String, Object> telemetry) throws Exception {
+        log.debug("POST /telemetry/{}", code);
 
         Device device = deviceRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Device not found"));
 
         DigitalTwin twin = device.getTwin();
-        
+
         // 🔥 1️⃣ Obtener nombres de componentes permitidos
         Set<String> allowedComponents = device.getProperties()
                 .stream()
@@ -65,7 +70,7 @@ public class TelemetryController {
 
         ObjectMapper mapper = new ObjectMapper();
         String json = mapper.writeValueAsString(filteredTelemetry);
-        
+
         TelemetryRecord record = TelemetryRecord.builder()
                 .device(device)
                 .telemetryJson(json)
@@ -86,6 +91,7 @@ public class TelemetryController {
     // 🔹 historial por código
     @GetMapping("/history/{code}")
     public List<Map<String, Object>> getHistory(@PathVariable String code) throws Exception {
+        log.info("GET /telemetry/history/{}", code);
 
         Device device = deviceRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Device not found"));

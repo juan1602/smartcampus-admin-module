@@ -1,6 +1,7 @@
 package com.uis.smartcampus.admin_module.config;
 
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.ServiceActivator;
@@ -15,13 +16,24 @@ import org.springframework.messaging.MessageHandler;
 @Configuration
 public class MqttConfig {
 
+    @Value("${mqtt.broker-url}")
+    private String brokerUrl;
+
+    @Value("${mqtt.username:}")
+    private String username;
+
+    @Value("${mqtt.password:}")
+    private String password;
+
     @Bean
     public DefaultMqttPahoClientFactory mqttClientFactory() {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
-        options.setServerURIs(new String[]{"ssl://aa6c58bbc2284bd6b0f776d64c15e56b.s1.eu.hivemq.cloud:8883"});
-        options.setUserName("smartcampus");
-        options.setPassword("Proyectogradouis2026".toCharArray());
+        options.setServerURIs(new String[]{brokerUrl});
+        if (!username.isBlank()) {
+            options.setUserName(username);
+            options.setPassword(password.toCharArray());
+        }
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
         factory.setConnectionOptions(options);

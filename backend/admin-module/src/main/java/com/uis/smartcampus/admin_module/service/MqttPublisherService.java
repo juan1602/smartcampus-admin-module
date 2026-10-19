@@ -2,6 +2,7 @@ package com.uis.smartcampus.admin_module.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.integration.mqtt.support.MqttHeaders;
 import org.springframework.integration.support.MessageBuilder;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MqttPublisherService {
 
     @Qualifier("mqttOutboundChannel")
@@ -33,16 +35,16 @@ public class MqttPublisherService {
             String json = mapper.writeValueAsString(ackPayload);
 
             mqttOutboundChannel.send(
-                MessageBuilder.withPayload(json)
-                    .setHeader(MqttHeaders.TOPIC, "smartcampus/ack")
-                    .setHeader(MqttHeaders.QOS, 1)
-                    .build()
+                    MessageBuilder.withPayload(json)
+                            .setHeader(MqttHeaders.TOPIC, "smartcampus/ack")
+                            .setHeader(MqttHeaders.QOS, 1)
+                            .build()
             );
 
-            System.out.println("📤 ACK publicado para dispositivo: " + deviceCode);
+            log.info("ACK publicado para dispositivo: {}", deviceCode);
 
         } catch (Exception e) {
-            System.err.println("❌ Error publicando ACK para " + deviceCode + ": " + e.getMessage());
+            log.error("Error publicando ACK para {}", deviceCode, e);
         }
     }
 }

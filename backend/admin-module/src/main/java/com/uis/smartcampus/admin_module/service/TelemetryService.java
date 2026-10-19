@@ -13,6 +13,7 @@ import com.uis.smartcampus.admin_module.repository.TelemetryRecordRepository;
 import com.uis.smartcampus.admin_module.repository.UnknownDeviceEventRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TelemetryService {
 
     private final DeviceRepository deviceRepository;
@@ -42,109 +44,109 @@ public class TelemetryService {
     @Transactional
     public void processTelemetry(String deviceCode, Map<String, Object> data) {
 
-    try {
+        try {
 
-        // Si el dispositivo no está registrado, guardar evento y notificar
-        if (!deviceRepository.findByCode(deviceCode).isPresent()) {
-            if (!unknownDeviceEventRepository.existsByDeviceCodeAndIgnoredFalse(deviceCode)) {
-                String rawJson = mapper.writeValueAsString(data);
-                UnknownDeviceEvent event = UnknownDeviceEvent.builder()
-                        .deviceCode(deviceCode)
-                        .telemetryJson(rawJson)
-                        .receivedAt(java.time.LocalDateTime.now())
-                        .build();
-                unknownDeviceEventRepository.save(event);
-                wsTemplate.convertAndSend("/topic/unknown-devices",
-                        Map.of("deviceCode", deviceCode, "telemetryJson", rawJson));
-                System.out.println("⚠️ Dispositivo desconocido detectado: " + deviceCode);
+            // Si el dispositivo no está registrado, guardar evento y notificar
+            if (!deviceRepository.findByCode(deviceCode).isPresent()) {
+                if (!unknownDeviceEventRepository.existsByDeviceCodeAndIgnoredFalse(deviceCode)) {
+                    String rawJson = mapper.writeValueAsString(data);
+                    UnknownDeviceEvent event = UnknownDeviceEvent.builder()
+                            .deviceCode(deviceCode)
+                            .telemetryJson(rawJson)
+                            .receivedAt(java.time.LocalDateTime.now())
+                            .build();
+                    unknownDeviceEventRepository.save(event);
+                    wsTemplate.convertAndSend("/topic/unknown-devices",
+                            Map.of("deviceCode", deviceCode, "telemetryJson", rawJson));
+                    log.warn("Dispositivo desconocido detectado: {}", deviceCode);
+                }
+                return;
             }
-            return;
-        }
 
-        Device device = deviceRepository.findByCode(deviceCode)
-                .orElseThrow(() -> new RuntimeException("Device not found"));
+            Device device = deviceRepository.findByCode(deviceCode)
+                    .orElseThrow(() -> new RuntimeException("Device not found"));
 
-        device.setLastSeen(LocalDateTime.now());
-        device.setUpdatedAt(LocalDateTime.now());
+            device.setLastSeen(LocalDateTime.now());
+            device.setUpdatedAt(LocalDateTime.now());
 
-        // No cambiar estado si está en mantenimiento
-        if (!"MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
-            device.setStatus("ONLINE");
-        }
-        deviceRepository.save(device);
+            // No cambiar estado si está en mantenimiento
+            if (!"MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
+                device.setStatus("ONLINE");
+            }
+            deviceRepository.save(device);
 
-        // 🔹 obtener propiedades válidas del dispositivo
-        Set<String> validProperties = device.getProperties()
-                .stream()
-                .map(p -> p.getName().toLowerCase())
-                .collect(Collectors.toSet());
+            // 🔹 obtener propiedades válidas del dispositivo
+            Set<String> validProperties = device.getProperties()
+                    .stream()
+                    .map(p -> p.getName().toLowerCase())
+                    .collect(Collectors.toSet());
 
-        // 🔹 filtrar datos entrantes
-        Map<String, Object> filteredData = new HashMap<>();
+            // 🔹 filtrar datos entrantes
+            Map<String, Object> filteredData = new HashMap<>();
 
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
 
-            String key = entry.getKey().toLowerCase();
+                String key = entry.getKey().toLowerCase();
 
-            if (validProperties.contains(key)) {
+                if (validProperties.contains(key)) {
 
-                filteredData.put(key, entry.getValue());
+                    filteredData.put(key, entry.getValue());
 
-            } else {
+                } else {
 
-                System.out.println("⚠️ Propiedad ignorada: " + key);
+                    log.debug("Propiedad ignorada: {}", key);
+
+                }
+            }
+
+            // si no hay datos válidos no hacer nada
+            if (filteredData.isEmpty()) {
+
+                log.warn("No valid telemetry data received");
+                return;
 
             }
-        }
 
-        // si no hay datos válidos no hacer nada
-        if (filteredData.isEmpty()) {
-
-            System.out.println("No valid telemetry data received");
-            return;
-
-        }
-
-        if (!"MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
-            Object batteryObject = filteredData.get("battery_level");
-            if (batteryObject != null) {
-                double batteryLevel = Double.parseDouble(batteryObject.toString());
-                if (batteryLevel == 0) {
-                    device.setStatus("OFFLINE");
-                } else if (batteryLevel < 5) {
-                    device.setStatus("WARNING");
-                    System.out.println("⚠️ WARNING: Battery level critically low for device " + deviceCode);
-                } else if (batteryLevel < 20) {
-                    device.setStatus("LOW_BATTERY");
+            if (!"MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
+                Object batteryObject = filteredData.get("battery_level");
+                if (batteryObject != null) {
+                    double batteryLevel = Double.parseDouble(batteryObject.toString());
+                    if (batteryLevel == 0) {
+                        device.setStatus("OFFLINE");
+                    } else if (batteryLevel < 5) {
+                        device.setStatus("WARNING");
+                        log.warn("Battery level critically low for device {}", deviceCode);
+                    } else if (batteryLevel < 20) {
+                        device.setStatus("LOW_BATTERY");
+                    } else {
+                        device.setStatus("ONLINE");
+                    }
                 } else {
                     device.setStatus("ONLINE");
                 }
-            } else {
-                device.setStatus("ONLINE");
             }
+
+            // Guardar historial
+            String json = mapper.writeValueAsString(filteredData);
+            TelemetryRecord record = new TelemetryRecord();
+            record.setDevice(device);
+            record.setTelemetryJson(json);
+            record.setTimestamp(LocalDateTime.now());
+            telemetryRecordRepository.save(record);
+
+            log.debug("Telemetry saved for device: {}", deviceCode);
+
+            // Evaluar reglas de alerta y notificar via WebSocket si se superan umbrales
+            alertService.checkAndAlert(deviceCode, filteredData);
+
+            // Publicar ACK — el Digital Twin se actualiza al recibir la confirmación
+            mqttPublisherService.publishAck(deviceCode, filteredData);
+
+        } catch (Exception e) {
+            log.error("Error procesando telemetría del dispositivo: {}", deviceCode, e);
+            throw new RuntimeException("Failed to process telemetry for device: " + deviceCode);
         }
-
-        // Guardar historial
-        String json = mapper.writeValueAsString(filteredData);
-        TelemetryRecord record = new TelemetryRecord();
-        record.setDevice(device);
-        record.setTelemetryJson(json);
-        record.setTimestamp(LocalDateTime.now());
-        telemetryRecordRepository.save(record);
-
-        System.out.println("✅ Telemetry saved for device: " + deviceCode);
-
-        // Evaluar reglas de alerta y notificar via WebSocket si se superan umbrales
-        alertService.checkAndAlert(deviceCode, filteredData);
-
-        // Publicar ACK — el Digital Twin se actualiza al recibir la confirmación
-        mqttPublisherService.publishAck(deviceCode, filteredData);
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        throw new RuntimeException("Failed to process telemetry for device: " + deviceCode);
     }
-}
 
     /**
      * Actualiza el Digital Twin con los datos confirmados por Node-RED.
@@ -179,19 +181,19 @@ public class TelemetryService {
             twin.setLastUpdate(LocalDateTime.now());
             twinRepository.save(twin);
 
-            System.out.println("✅ Digital Twin actualizado tras confirmación: " + deviceCode);
-            System.out.println("Twin data: " + mergedJson);
+            log.info("Digital Twin actualizado tras confirmación: {}", deviceCode);
+            log.debug("Twin data: {}", mergedJson);
 
             // 📡 Notificar al frontend en tiempo real via WebSocket
             wsTemplate.convertAndSend("/topic/twins", new TwinUpdateMessage(
-                deviceCode,
-                twin.getId(),
-                mergedJson,
-                twin.getLastUpdate().toString()
+                    deviceCode,
+                    twin.getId(),
+                    mergedJson,
+                    twin.getLastUpdate().toString()
             ));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error aplicando telemetría confirmada del dispositivo: {}", deviceCode, e);
             throw new RuntimeException("Failed to apply confirmed telemetry for device: " + deviceCode);
         }
     }

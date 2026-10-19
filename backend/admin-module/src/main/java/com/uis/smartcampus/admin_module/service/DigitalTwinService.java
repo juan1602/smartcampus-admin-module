@@ -17,59 +17,66 @@ import com.uis.smartcampus.admin_module.repository.DeviceRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 
+@Slf4j
 public class DigitalTwinService {
 
     private final DigitalTwinRepository repository;
     private final DeviceRepository deviceRepository;
 
     public List<DigitalTwin> findAll() {
+        log.debug("Listando gemelos digitales");
         return repository.findAll();
     }
 
     public DigitalTwin findById(Long id) {
+        log.debug("Buscando gemelo digital con id: {}", id);
         return repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Twin not found"));
     }
 
     public DigitalTwin save(DigitalTwin twin) {
+        log.info("Guardando gemelo digital");
         twin.setLastUpdate(LocalDateTime.now());
         return repository.save(twin);
     }
 
     public void delete(Long id) {
+        log.info("Eliminando gemelo digital con id: {}", id);
         repository.deleteById(id);
     }
 
     public DigitalTwin updateTelemetry(Long deviceId, Map<String, Object> payload) throws Exception {
+        log.debug("Actualizando telemetría del dispositivo con id: {}", deviceId);
 
-    Device device = deviceRepository.findById(deviceId)
-            .orElseThrow(() -> new EntityNotFoundException("Device not found"));
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new EntityNotFoundException("Device not found"));
 
-    Set<String> allowedComponents = device.getProperties()
-            .stream()
-            .map(Property::getName)
-            .collect(Collectors.toSet());
+        Set<String> allowedComponents = device.getProperties()
+                .stream()
+                .map(Property::getName)
+                .collect(Collectors.toSet());
 
-    Map<String, Object> filtered = payload.entrySet()
-            .stream()
-            .filter(entry -> allowedComponents.contains(entry.getKey()))
-            .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    Map.Entry::getValue
-            ));
+        Map<String, Object> filtered = payload.entrySet()
+                .stream()
+                .filter(entry -> allowedComponents.contains(entry.getKey()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue
+                ));
 
-    ObjectMapper mapper = new ObjectMapper();
-    String json = mapper.writeValueAsString(filtered);
+        ObjectMapper mapper = new ObjectMapper();
+        String json = mapper.writeValueAsString(filtered);
 
-    DigitalTwin twin = device.getTwin();
-    twin.setTelemetryJson(json);
-    twin.setLastUpdate(LocalDateTime.now());
+        DigitalTwin twin = device.getTwin();
+        twin.setTelemetryJson(json);
+        twin.setLastUpdate(LocalDateTime.now());
 
-    return repository.save(twin);
-}
+        return repository.save(twin);
+    }
 
 }

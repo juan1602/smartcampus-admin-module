@@ -5,6 +5,7 @@ import com.uis.smartcampus.admin_module.model.AlertRule;
 import com.uis.smartcampus.admin_module.repository.AlertHistoryRepository;
 import com.uis.smartcampus.admin_module.repository.AlertRuleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AlertService {
 
     private final AlertRuleRepository alertRuleRepository;
@@ -73,10 +75,10 @@ public class AlertService {
                 alert.put("label",      rule.getLabel());
 
                 wsTemplate.convertAndSend("/topic/alerts", alert);
-                System.out.println("⚠️ Alerta enviada para " + deviceCode + " — " + rule.getLabel());
+                log.info("Alerta enviada para {} — {}", deviceCode, rule.getLabel());
 
             } catch (NumberFormatException e) {
-                System.err.println("❌ No se pudo parsear valor de " + property + " para alerta");
+                log.warn("No se pudo parsear valor de {} para alerta", property);
             }
         }
     }

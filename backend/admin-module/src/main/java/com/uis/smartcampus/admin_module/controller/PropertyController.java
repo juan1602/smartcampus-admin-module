@@ -2,6 +2,7 @@ package com.uis.smartcampus.admin_module.controller;
 import com.uis.smartcampus.admin_module.model.Property;
 import com.uis.smartcampus.admin_module.repository.PropertyRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -9,32 +10,38 @@ import java.util.List;
 @RestController
 @RequestMapping("/properties")
 @RequiredArgsConstructor
+@Slf4j
 public class PropertyController {
     private final PropertyRepository repository;
 
     @GetMapping
     public List<Property> findAll() {
+        log.info("GET /properties");
         return repository.findAll();
     }
 
     @GetMapping("/{id}")
     public Property findById(@PathVariable Long id) {
+        log.info("GET /properties/{}", id);
         return repository.findById(id).orElseThrow(() -> new RuntimeException("Property not found"));
     }
 
     @PostMapping
     public Property save(@RequestBody Property property) {
+        log.info("POST /properties");
         return repository.save(property);
     }
 
     @PutMapping("/{id}")
     public Property update(@PathVariable Long id, @RequestBody Property property) {
+        log.info("PUT /properties/{}", id);
         property.setId(id);
         return repository.save(property);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
+        log.info("DELETE /properties/{}", id);
         repository.deleteById(id);
     }
 }

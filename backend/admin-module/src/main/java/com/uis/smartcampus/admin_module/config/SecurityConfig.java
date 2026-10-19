@@ -38,7 +38,7 @@ public class SecurityConfig {
                 // Preflight CORS — siempre permitido
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Login, WebSocket y Swagger — públicos
+                // Login, WebSocket, Swagger, Actuator (probes de Kubernetes, scrape de Prometheus) y página de error — públicos
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers(
@@ -46,6 +46,7 @@ public class SecurityConfig {
                     "/swagger-ui.html",
                     "/v3/api-docs/**"
                 ).permitAll()
+                .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/error").permitAll()
 
                 // Lectura — ADMIN y VIEWER
                 .requestMatchers(HttpMethod.GET, "/devices/**").hasAnyRole("ADMIN", "VIEWER")

@@ -26,9 +26,11 @@ import com.uis.smartcampus.admin_module.repository.TelemetryRecordRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeviceService {
 
     private final DeviceRepository repository;
@@ -40,18 +42,22 @@ public class DeviceService {
 
 
     public List<Device> findAll() {
+        log.debug("Listando dispositivos");
         return repository.findAll();
     }
 
-     public Device findById(Long id) {
+    public Device findById(Long id) {
+        log.debug("Buscando dispositivo con id: {}", id);
         return repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Device not found with id " + id));
     }
 
     public Device save(Device device) {
+        log.info("Guardando dispositivo: {}", device.getCode());
 
         // 1️⃣ Guardar device primero
         Device saved = repository.save(device);
+        log.info("Dispositivo guardado con id: {}", saved.getId());
 
         // 2️⃣ Crear twin automáticamente si no existe
         DigitalTwin twin = twinRepository.findByDeviceId(saved.getId())
@@ -71,21 +77,23 @@ public class DeviceService {
 
     @Transactional
     public void updatePropertyValue(Long deviceId, String propertyName, Object value) {
+        log.info("Actualizando propiedad '{}' del dispositivo con id: {}", propertyName, deviceId);
 
-    
+
         Device device = repository.findById(deviceId)
-            .orElseThrow(() -> new RuntimeException("Device not found"));
+                .orElseThrow(() -> new RuntimeException("Device not found"));
 
         // normalizar nombre de propiedad
         propertyName = propertyName.trim().toLowerCase();
 
         // obtener propiedades válidas del dispositivo
         Set<String> validProperties = device.getProperties()
-            .stream()
-            .map(p -> p.getName().trim().toLowerCase())
-            .collect(Collectors.toSet());
+                .stream()
+                .map(p -> p.getName().trim().toLowerCase())
+                .collect(Collectors.toSet());
         // validar que exista la propiedad en el dispositivo
         if (!validProperties.contains(propertyName)) {
+            log.warn("Propiedad '{}' no válida para el dispositivo con id: {}", propertyName, deviceId);
             throw new RuntimeException("Property not valid for this device");
         }
 
@@ -98,8 +106,8 @@ public class DeviceService {
         try {
 
             telemetry = twin.getTelemetryJson() != null
-                ? mapper.readValue(twin.getTelemetryJson(), Map.class)
-                : new HashMap<>();
+                    ? mapper.readValue(twin.getTelemetryJson(), Map.class)
+                    : new HashMap<>();
             Map<String, Object> normalizedTelemetry= new HashMap<>();
             for (Map.Entry<String, Object> entry : telemetry.entrySet()) {
 
@@ -115,14 +123,14 @@ public class DeviceService {
             // verificar si el valor realmente cambio
             Object currentValue = telemetry.get(propertyName);
             if (currentValue != null && currentValue.equals(value)) {
-                System.out.println("Valor de propiedad '" + propertyName + "' no ha cambiado, no se actualiza");
+                log.debug("Valor de propiedad '{}' no ha cambiado, no se actualiza", propertyName);
                 return;
             }
-            
+
 
         } catch (Exception e) {
 
-        telemetry = new HashMap<>();
+            telemetry = new HashMap<>();
 
         }
 
@@ -151,7 +159,7 @@ public class DeviceService {
             record.setTimestamp(LocalDateTime.now());
             telemetryRecordRepository.save(record);
         } catch (Exception e) {
-            System.err.println("❌ Error guardando registro de telemetría: " + e.getMessage());
+            log.error("Error guardando registro de telemetría", e);
         }
 
         // Publicar el cambio por el mismo flujo de Node-RED (ack → confirm → RPi)
@@ -161,6 +169,7 @@ public class DeviceService {
     }
 
     public Map<String, Object> getStats() {
+        log.debug("Calculando estadísticas de dispositivos");
         List<Device> devices = repository.findAll();
         long totalProperties = propertyRepository.count();
         long totalTwins     = twinRepository.count();
@@ -175,26 +184,26 @@ public class DeviceService {
 
         // Dispositivo visto más recientemente
         Map<String, Object> lastSeen = devices.stream()
-            .filter(d -> d.getLastSeen() != null)
-            .max(Comparator.comparing(Device::getLastSeen))
-            .map(d -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("name", d.getName() != null ? d.getName() : d.getCode());
-                m.put("code", d.getCode());
-                m.put("lastSeen", d.getLastSeen().toString());
-                m.put("status", d.getStatus());
-                return m;
-            }).orElse(null);
+                .filter(d -> d.getLastSeen() != null)
+                .max(Comparator.comparing(Device::getLastSeen))
+                .map(d -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("name", d.getName() != null ? d.getName() : d.getCode());
+                    m.put("code", d.getCode());
+                    m.put("lastSeen", d.getLastSeen().toString());
+                    m.put("status", d.getStatus());
+                    return m;
+                }).orElse(null);
 
         // Conteo por tipo de dispositivo
         Map<String, Long> byType = devices.stream()
-            .filter(d -> d.getType() != null)
-            .collect(Collectors.groupingBy(d -> d.getType().toUpperCase(), Collectors.counting()));
+                .filter(d -> d.getType() != null)
+                .collect(Collectors.groupingBy(d -> d.getType().toUpperCase(), Collectors.counting()));
 
         // Conteo por namespace (agrupación lógica)
         Map<String, Long> byNamespace = devices.stream()
-            .filter(d -> d.getNamespace() != null && !d.getNamespace().isBlank())
-            .collect(Collectors.groupingBy(Device::getNamespace, Collectors.counting()));
+                .filter(d -> d.getNamespace() != null && !d.getNamespace().isBlank())
+                .collect(Collectors.groupingBy(Device::getNamespace, Collectors.counting()));
 
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("totalDevices",    devices.size());
@@ -215,8 +224,9 @@ public class DeviceService {
     }
 
     public void toggleMaintenance(Long id) {
+        log.info("Cambiando modo mantenimiento del dispositivo con id: {}", id);
         Device device = repository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Device not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Device not found: " + id));
 
         if ("MAINTENANCE".equalsIgnoreCase(device.getStatus())) {
             device.setStatus("OFFLINE");
@@ -227,16 +237,18 @@ public class DeviceService {
     }
 
     public void delete(Long id) {
+        log.info("Eliminando dispositivo con id: {}", id);
         repository.deleteById(id);
     }
 
     public Device assignComponents(Long deviceId, Set<Long> propertyIds) {
+        log.info("Asignando propiedades al dispositivo con id: {}", deviceId);
 
         Device device = repository.findById(deviceId)
-            .orElseThrow();
+                .orElseThrow();
 
         Set<Property> properties = new HashSet<>(
-            propertyRepository.findAllById(propertyIds)
+                propertyRepository.findAllById(propertyIds)
         );
 
         device.setProperties(properties);
